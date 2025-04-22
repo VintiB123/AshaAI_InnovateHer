@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "MentorHer",
+  title: "Asha AI",
   description: "A project by InnovateHer",
 };
 
@@ -39,13 +39,12 @@ export default async function RootLayout({ children, params }) {
               {children}
               {/* </Provider> */}
               <div className="fixed bottom-4 right-4 z-50">
-                <FloatingChatbot />
+                {/* <FloatingChatbot /> */}
               </div>
             </body>
           </html>
         </ChatbotProvider>
       </GlobalProvider>
     </LanguageProvider>
-    // </ClerkProvider>
   );
 }
