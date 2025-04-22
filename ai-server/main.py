@@ -1,26 +1,24 @@
 # main.py
-from fastapi import FastAPI, Form, HTTPException, Query, Body, UploadFile, File
-from pydantic import BaseModel
-from services.gemini_game_flow import get_gemini_response
-from services.wellness import process_input
-from services.scenariosaga import ScenarioSaga
-import base64
-from chatbot import MentorHerChatbot, ChatQuery, ChatResponse
-from agents import seo_optimizer, email_manager, product_recommendation, competitor_watchdog
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
-from agents.seo_optimizer import AgentRequest as SEORequest
-from agents.smart_email_manager import EmailRequest, EmailResponse, generate_email
-from agents.product_recomendation import AgentRequest as ProductRequest
-from agents.competitor_watchdog import AgentRequest as CompetitorRequest
-from dotenv import load_dotenv
-from agents.sentiment import SentimentRequest, SentimentResponse, agent as sentiment_agent
 
+import os
+import re
+import pandas as pd
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from dotenv import load_dotenv
+
+from langchain_groq import ChatGroq
+from langchain_community.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from langchain_community.utilities import GoogleSearchAPIWrapper
 
 load_dotenv()
 
+# ----------------------- FASTAPI SETUP -----------------------
 app = FastAPI()
 
 app.add_middleware(
@@ -31,127 +29,137 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class Character(BaseModel):
-    name: str
-    age: int
+class AshaQuery(BaseModel):
+    query: str
 
-class GameResponse(BaseModel):
-    scenario: str
-    image: Optional[str] = None
-    options: List[str]
+# ----------------------- LLM & TOOLS SETUP -----------------------
+llm = ChatGroq(api_key=os.getenv("GROQ_API_TOKEN"), model_name="llama3-70b-8192", temperature=0.5)
+search = GoogleSearchAPIWrapper()
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
-class OptionChoice(BaseModel):
-    option_index: int
+# ----------------------- GUARDRAILS SYSTEM PROMPT -----------------------
+guardrails_system_prompt = """
+You are Asha, a compassionate and empowering AI assistant helping women in their career journey.
 
-game_instances: Dict[str, ScenarioSaga] = {}
+STRICTLY FOLLOW THESE RULES:
+- NEVER generate or engage in content that promotes bias, sexism, or stereotypes.
+- DO NOT discuss JobsForHer Foundation's competitors.
+- DO NOT disclose any internal or sensitive information related to JobsForHer Foundation.
+- Politely refuse to respond to inappropriate, harmful, or unethical questions.
 
+Always maintain a warm, encouraging, and professional tone.
+"""
 
-@app.post("/api/career-path")
-async def ai_financial_path(
-    input: str = Form(...),
-    risk: Optional[str] = Form("conservative")
-):
-    """Generates an AI-based financial planning response."""
-    try:
-        response = get_gemini_response(input, risk)  
-        return JSONResponse(content=response, status_code=200)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Something went wrong: {str(e)}")
+# ----------------------- FORMATTING JOBS & EVENTS -----------------------
+def format_job(row):
+    return f"""
+Imagine this opportunity: At {row['Company']}, there's a role titled "{row['Job Title']}" located in {row['Location']} ({row['Work Mode']} mode). 
+They’re looking for someone with {row['Experience']} of experience in the {row['Industry']} industry, especially within the {row['Functional Area']} domain.
+The role demands key skills like {row['Key Skills']}. 
 
+Here’s a quick summary: {row['Job Summary']}
+Your responsibilities may include: {row['Responsibilities']}
+To qualify, you'll need: {row['Requirements']}
 
+Interested? Explore more or apply here: {row['Link']}
+"""
 
+def format_event(row):
+    return f"""
+Don't miss this event: "{row['Title']}" happening on {row['Date']} at {row['Time']} in {row['Location']} ({row['Mode']} mode). 
+It falls under categories like {row['Categories']}. 
 
-# Add import at the top with other imports
-from agents.meeting_summarizer import upload_pdf
-from agents.post_creator import PostRequest, PostResponse, create_post
+Want to join? Register now: {row['Register Link']}  
+Learn more here: {row['Event URL']}
+"""
 
+# ----------------------- LOAD & INDEX DATA -----------------------
+def load_and_index_dataset(path: str, category: str, formatter):
+    df = pd.read_csv(path)
+    docs = [formatter(row) for _, row in df.iterrows()]
+    texts = []
+    metadatas = []
+    for i, doc in enumerate(docs):
+        chunks = text_splitter.split_text(doc)
+        for chunk in chunks:
+            texts.append(chunk)
+            metadatas.append({"source": f"{category}_doc_{i}"})
+    vectorstore = FAISS.from_texts(texts, embeddings, metadatas=metadatas)
+    return vectorstore
 
-
-
-# Initialize the chatbot
-try:
-    shopmart_chatbot = MentorHerChatbot()
-except Exception as e:
-    logger.critical(f"Chatbot initialization failed: {str(e)}")
-    raise
-
-@app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(query: ChatQuery = Body(...)):
-    """Endpoint to process chat queries using the ShopmartChatbot."""
-    try:
-        response = shopmart_chatbot.process_query(query.query)
-        return ChatResponse(response=response)
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    except Exception as e:
-        logger.error(f"Error processing chat: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# Define a mapping from agent names to their corresponding functions
-AGENT_FUNCTIONS = {
-    "seo_optimizer": seo_optimizer,
-    "email_manager": email_manager,
-    "product_recommendation": product_recommendation,
-    "competitor_watchdog": competitor_watchdog,
-    "post_creator": create_post,
-    "meeting_summarizer": upload_pdf,
-    "sentiment_analysis": sentiment_agent.domain_specific_analysis,
-    "chat": shopmart_chatbot.process_query,
-    # Add other agents as needed
+vector_stores = {
+    "jobs": load_and_index_dataset("./datasets/structured_jobs.csv", "jobs", format_job),
+    "events": load_and_index_dataset("./datasets/herkey_events.csv", "events", format_event)
 }
 
-# Define a master agent function to provide default input
-def master_agent(agent_name, current_data):
-    # Logic to provide default input for the agent
-    # This can be customized based on the agent's requirements
-    return {"default_input": f"Default input for {agent_name}"}
+# ----------------------- PROMPT TEMPLATES -----------------------
+rag_prompt = PromptTemplate(
+    input_variables=["context", "query"],
+    template=f"""{guardrails_system_prompt}
 
-import inspect  # Import inspect to check if a function is a coroutine
+From the information below, answer the user's query in a conversational and storytelling style.
+Always include the job or event link naturally in the response.
 
-async def orchestrate_agents(agent_data: List[Dict[str, Any]]):
-    """
-    Orchestrates the execution of agents based on provided data.
-    
-    :param agent_data: List of dictionaries containing agent names and their inputs.
-    :return: Final output after processing through all agents.
-    """
-    current_data = None
-    for agent_info in agent_data:
-        agent_name = agent_info.get("name")
-        agent_input = agent_info.get("input")
-        
-        agent_function = AGENT_FUNCTIONS.get(agent_name)
-        if not agent_function:
-            raise ValueError(f"Agent '{agent_name}' not found.")
-        
-        # Convert agent_input to the expected format if necessary
-        if isinstance(agent_input, dict):
-            if agent_name == "seo_optimizer":
-                current_data = SEORequest(**agent_input)
-            elif agent_name == "email_manager":
-                current_data = EmailRequest(**agent_input)
-            elif agent_name == "product_recommendation":
-                current_data = ProductRequest(**agent_input)
-            elif agent_name == "competitor_watchdog":
-                current_data = CompetitorRequest(**agent_input)
-            # Add other agents as needed
-        
-        # Check if the agent function is a coroutine and await it if necessary
-        if inspect.iscoroutinefunction(agent_function):
-            current_data = await agent_function(current_data)
-        else:
-            current_data = agent_function(current_data)
-    
-    return current_data
+Context:
+{{context}}
 
-@app.post("/api/orchestrate")
-async def orchestrate_endpoint(agent_data: List[Dict[str, Any]]):
-    """
-    Endpoint to orchestrate agents based on the provided data.
-    """
-    try:
-        result = await orchestrate_agents(agent_data)
-        return JSONResponse(content=result, status_code=200)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Orchestration failed: {str(e)}")
+Question:
+{{query}}
+
+Answer:
+"""
+)
+
+web_prompt = PromptTemplate(
+    input_variables=["query", "results"],
+    template=f"""{guardrails_system_prompt}
+
+Answer the question using the following Google search results in a narrative, story-based tone.
+
+Search Results:
+{{results}}
+
+Question:
+{{query}}
+
+Response:
+"""
+)
+
+rag_chain = LLMChain(llm=llm, prompt=rag_prompt)
+web_chain = LLMChain(llm=llm, prompt=web_prompt)
+
+# ----------------------- SMART AGENT ROUTE -----------------------
+@app.post("/asha-smart-query")
+async def smart_query(query: AshaQuery):
+    q = query.query.lower()
+
+    # Decide between RAG vs Web
+    if any(keyword in q for keyword in ["job", "internship", "career", "resume", "event", "workshop"]):
+        category = "jobs" if "job" in q or "internship" in q else "events"
+        retriever = vector_stores[category].as_retriever(search_type="similarity", search_kwargs={"k": 5})
+        docs = retriever.invoke(query.query)
+        context = "\n\n".join([doc.page_content for doc in docs])
+        final_prompt = rag_prompt.format(context=context, query=query.query)
+        response = llm.invoke(final_prompt).content
+
+        urls = []
+        for doc in docs:
+            if "jobs" in doc.metadata["source"]:
+                match = re.search(r"Link:\s*(https?://\S+)", doc.page_content)
+            else:
+                match = re.search(r"Event URL:\s*(https?://\S+)", doc.page_content)
+            if match:
+                urls.append(match.group(1))
+
+        return {"response": response, "source": f"RAG-{category}", "urls": urls}
+    else:
+        results = search.run(query.query)
+        response = web_chain.run({"query": query.query, "results": results})
+        return {"response": response, "source": "Google Search"}
+
+# ----------------------- HEALTH CHECK -----------------------
+@app.get("/health")
+def health():
+    return {"status": "asha-agentic-ai-ready", "modes": ["smart", "RAG", "web"]}
