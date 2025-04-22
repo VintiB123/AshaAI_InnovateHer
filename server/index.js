@@ -6,8 +6,7 @@ import cors from "cors";
 
 import authRoutes from "./routes/auth.route.js";
 import voiceRoutes from "./routes/voice.routes.js";
-import mentorRoutes from "./routes/mentor.routes.js";
-import menteeRoutes from "./routes/mentee.route.js";
+import userRoutes from "./routes/user.route.js";
 
 dotenv.config();
 
@@ -35,8 +34,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/voice_command", voiceRoutes);
-app.use("/api/mentor", mentorRoutes);
-app.use("/api/mentee", menteeRoutes);
+app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
 
 // Initialize socket logic
