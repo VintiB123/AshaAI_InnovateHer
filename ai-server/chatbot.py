@@ -1,19 +1,14 @@
+# asha_bot/main.py 
 import os
-import logging
-from fastapi import FastAPI, HTTPException, Body
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Body
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 from langchain_groq import ChatGroq
+from langchain_community.utilities import GoogleSearchAPIWrapper
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
 from dotenv import load_dotenv
 
-# Initialize logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger("MentorHer")
-
-# Load environment variables
 load_dotenv()
 
 app = FastAPI()
@@ -26,75 +21,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic models for chat input and output
-class ChatQuery(BaseModel):
+class AshaQuery(BaseModel):
     query: str
 
-class ChatResponse(BaseModel):
-    response: str
+# Initialize Groq LLaMA 3 Model
+llm = ChatGroq(
+    api_key=os.getenv("GROQ_API_TOKEN"),
+    model_name="llama3-70b-8192",
+    temperature=0.7  # higher for storytelling tone
+)
 
-class MentorHerChatbot:
-    def __init__(self):
-        self.api_token = os.getenv("GROQ_API_TOKEN")
-        if not self.api_token:
-            raise ValueError("GROQ_API_TOKEN environment variable not set")
-        
-        # Initialize the AI model
-        self.model = ChatGroq(
-            api_key=self.api_token,
-            model_name="llama3-70b-8192",
-            temperature=0.2,
-            max_tokens=250  # Increased for better responses
-        )
-        logger.info("Chatbot initialized successfully")
+# Initialize Google Search
+search = GoogleSearchAPIWrapper()
 
-    def process_query(self, query: str) -> str:
-        if not query.strip():
-            raise ValueError("Empty query provided")
+# Prompt template for storytelling style
+story_prompt = PromptTemplate(
+    input_variables=["query", "results"],
+    template="""
+You are Asha, a warm, friendly, and inspiring guide helping women navigate career opportunities.
+Answer the question using the following Google search results, telling it like a story to make it engaging and encouraging.
 
-        # Define the system prompt
-        system_prompt = """
-        You are MentorHer, an AI-powered mentor dedicated to guiding, inspiring, and supporting women in tech. 
-        Your role is to provide career advice, learning resources, and motivation for personal and professional growth. 
-        Respond in an empathetic, insightful, and growth-oriented manner.
-        """
+Search Results:
+{results}
 
-        # Combine system prompt with the user query
-        user_prompt = f"User Query: {query}"
+Question:
+{query}
 
-        try:
-            response = self.model.invoke(system_prompt + "\n" + user_prompt).content
-        except Exception as e:
-            logger.error(f"Model invocation failed: {str(e)}")
-            raise HTTPException(status_code=500, detail="Model invocation failed")
+Respond with a short story or narrative that includes helpful information, guidance, or inspiration based on the topic.
+"""
+)
 
-        return response
+story_chain = LLMChain(llm=llm, prompt=story_prompt)
 
-# Initialize the chatbot
-try:
-    chatbot = MentorHerChatbot()
-except Exception as e:
-    logger.critical(f"Chatbot initialization failed: {str(e)}")
-    raise
-
-@app.post("/chat", response_model=ChatResponse)
-async def chat(query: ChatQuery = Body(...)):
-    try:
-        response = chatbot.process_query(query.query)
-        return ChatResponse(response=response)
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    except Exception as e:
-        logger.error(f"Error processing chat: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+@app.post("/asha-query")
+async def query_asha(query: AshaQuery):
+    results = search.run(query.query)
+    response = story_chain.run({"query": query.query, "results": results})
+    return {"response": response, "source": "Google Search"}
 
 @app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "groq_connected": chatbot.api_token is not None
-    }
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+async def health():
+    return {"status": "storytelling-web-agent-ready"}
