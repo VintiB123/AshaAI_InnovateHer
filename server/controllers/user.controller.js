@@ -1,60 +1,73 @@
 import bcrypt from "bcrypt";
-import Mentor from "../models/mentor.model.js";
-import Mentee from "../models/mentee.model.js";
-import { encryptValue, decryptValue } from "../helpers/security.helper.js"; // Assuming encrypt/decrypt functions
+import User from "../models/user.model.js";
+import { encryptValue, decryptValue } from "../helpers/security.helper.js";
 
-export const loginUser = async (req, res) => {
-  const { email, password, userType } = req.body;
+const SALT_ROUNDS = 10;
 
+export const registerUser = async (req, res) => {
   try {
-    let userModel;
+    const { name, email, password } = req.body;
 
-    if (userType === "MENTOR") {
-      userModel = Mentor;
-    } else if (userType === "MENTEE") {
-      userModel = Mentee;
-    } else {
-      return res.status(400).json({ message: "Invalid user type" });
-    }
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Encrypt the email from the request body before querying the database
+    // Encrypt name and email
+    const encryptedName = encryptValue(name);
     const encryptedEmail = encryptValue(email);
 
-    // Find the user in the database using the encrypted email
-    const existingUser = await userModel.findOne({ email: encryptedEmail });
+    const newUser = new User({
+      name: encryptedName,
+      email: encryptedEmail,
+      password: hashedPassword,
+    });
 
-    if (!existingUser) {
-      return res.status(404).json({ message: "User not found" });
+    await newUser.save();
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Registration failed" });
+  }
+};
+
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find all users (since email is encrypted)
+    const users = await User.find();
+
+    // Loop through users and find one with matching decrypted email
+    let foundUser = null;
+    for (const user of users) {
+      const decryptedEmail = decryptValue(user.email);
+      if (decryptedEmail === email) {
+        foundUser = user;
+        break;
+      }
     }
 
-    // Decrypt the stored email for comparison
-    const decryptedEmail = decryptValue(existingUser.email);
-
-    if (decryptedEmail !== email) {
-      return res.status(401).json({ message: "Email does not match" });
+    if (!foundUser) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Compare encrypted password using bcrypt
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      existingUser.password
-    );
-
+    const isPasswordValid = await bcrypt.compare(password, foundUser.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Incorrect password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    return res.status(200).json({
+    // Optionally decrypt and return user name
+    const decryptedName = decryptValue(foundUser.name);
+
+    res.status(200).json({
       message: "Login successful",
       user: {
-        id: existingUser._id,
-        userName: existingUser.userName,
-        email: decryptedEmail, // Returning decrypted email
-        userType: userType,
+        id: foundUser._id,
+        name: decryptedName,
+        email: email, // Already known
       },
     });
   } catch (error) {
-    console.error("Error in login:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error(error);
+    res.status(500).json({ message: "Login failed" });
   }
 };
