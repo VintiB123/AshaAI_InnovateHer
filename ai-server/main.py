@@ -1,5 +1,3 @@
-# main.py
-
 import os
 import re
 import pandas as pd
@@ -10,7 +8,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from langchain_groq import ChatGroq
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Qdrant
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.prompts import PromptTemplate
@@ -36,12 +34,46 @@ class AshaQuery(BaseModel):
 class TitleRequest(BaseModel):
     content: str
 
+# -------------------- EMBEDDINGS & TEXT SPLITTER --------------------
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+
+# -------------------- VECTOR STORE CACHING --------------------
+_vector_stores = None
+
+def get_vector_stores():
+    global _vector_stores
+    if _vector_stores is not None:
+        return _vector_stores
+
+    def load_and_index_dataset(path: str, category: str, formatter):
+        df = pd.read_csv(path)
+        docs, metadatas = [], []
+        for i, row in df.iterrows():
+            for chunk in text_splitter.split_text(formatter(row)):
+                docs.append(chunk)
+                metadatas.append({"source": f"{category}_doc_{i}"})
+
+        collection_name = f"herkey_{category}"
+        return Qdrant.from_texts(
+            texts=docs,
+            embedding=embeddings,
+            metadatas=metadatas,
+            collection_name=collection_name,
+            location="https://3e3b87fc-8480-4f68-89a0-a352813de8cd.us-west-1-0.aws.cloud.qdrant.io",
+            api_key=os.getenv("QDRANT_API_KEY")
+        )
+
+    _vector_stores = {
+        "jobs": load_and_index_dataset("./datasets/structured_jobs.csv", "jobs", format_job),
+        "events": load_and_index_dataset("./datasets/herkey_events.csv", "events", format_event)
+    }
+    return _vector_stores
+
 # -------------------- MODELS & TOOLS --------------------
 llm = ChatGroq(api_key=os.getenv("GROQ_API_TOKEN"), model_name="llama3-70b-8192", temperature=0.5)
 title_llm = ChatGroq(api_key=os.getenv("GROQ_API_TOKEN"), model_name="llama3-70b-8192", temperature=0.3)
 search = GoogleSearchAPIWrapper()
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
 # -------------------- SYSTEM PROMPT --------------------
 current_date = date.today().isoformat()
@@ -77,68 +109,19 @@ Your role is to guide women with professionalism, empathy, and empowerment — o
 Your mission is to empower every woman — whether she's restarting, growing, or exploring her career — by sharing safe, ethical, and inspirational guidance. Let every answer reflect that purpose.
 """
 
-# -------------------- PROMPT TEMPLATES --------------------
-rag_prompt = PromptTemplate(
-    input_variables=["context", "query", "current_date"],
-    template=f"""{guardrails_system_prompt}
-
-Context:
-{{context}}
-
-Query:
-{{query}}
-
-Answer:
-"""
-)
-
-web_prompt = PromptTemplate(
-    input_variables=["query", "results", "current_date"],
-    template=f"""{guardrails_system_prompt}
-
-Use the following Google Search results to answer in a storytelling, empowering tone:
-
-Search Results:
-{{results}}
-
-Query:
-{{query}}
-
-Response:
-"""
-)
-
-title_prompt = PromptTemplate(
-    input_variables=["chat_content"],
-    template="""
-You are an AI assistant that creates short and relevant titles for chat conversations.
-
-Given the following user query or conversation context, generate a concise, descriptive title (max 8 words). Avoid using punctuation like quotes or emojis.
-
-Chat Content:
-{chat_content}
-
-Title:
-"""
-)
-
-def generate_chat_title(chat_content: str) -> str:
-    formatted_prompt = title_prompt.format(chat_content=chat_content)
-    return title_llm.invoke(formatted_prompt).content.strip()
-
 # -------------------- FORMATTERS --------------------
 def format_job(row):
     return f"""
-Imagine this opportunity: At {row['Company']}, there's a role titled "{row['Job Title']}" located in {row['Location']} ({row['Work Mode']} mode). 
-They’re looking for someone with {row['Experience']} of experience in the {row['Industry']} industry, especially within the {row['Functional Area']} domain.
-The role demands key skills like {row['Key Skills']}. 
+Imagine yourself at {row['Company']}, where you're stepping into a role titled "{row['Job Title']}" located in {row['Location']} ({row['Work Mode']} mode). 
+In this role, you'll have the chance to use your {row['Experience']} years of experience in the {row['Industry']} industry, specifically focusing on {row['Functional Area']}.
+They’re looking for someone who possesses key skills like {row['Key Skills']}, ready to make a difference. 
 
-Here’s a quick summary: {row['Job Summary']}
-Your responsibilities may include: {row['Responsibilities']}
-To qualify, you'll need: {row['Requirements']}
+Picture this: You'll be responsible for {row['Responsibilities']}, contributing to the team’s success while constantly learning and growing. 
+To be successful in this role, you’ll need {row['Requirements']}, so that you can help {row['Company']} make great strides in its mission. 
 
-Interested? Explore more or apply here: {row['Link']}
+Ready to take this exciting leap? Explore the opportunity and apply today: {row['Link']}
 """
+
 
 def format_event(row):
     return f"""
@@ -149,33 +132,40 @@ Want to join? Register now: {row['Register Link']}
 Learn more here: {row['Event URL']}
 """
 
-# -------------------- LOAD DATASETS --------------------
-def load_and_index_dataset(path: str, category: str, formatter):
-    df = pd.read_csv(path)
-    docs, metadatas = [], []
-    for i, row in df.iterrows():
-        for chunk in text_splitter.split_text(formatter(row)):
-            docs.append(chunk)
-            metadatas.append({"source": f"{category}_doc_{i}"})
-    return FAISS.from_texts(docs, embeddings, metadatas=metadatas)
+# -------------------- PROMPT TEMPLATES --------------------
+rag_prompt = """Use this context to answer the query as a helpful assistant:\n\n{context}\n\nQuery: {query}\n\nDate: {current_date}"""
+web_prompt = """Here are the top results from Google:\n\n{results}\n\nQuery: {query}\nDate: {current_date}\n\nProvide a helpful response."""
 
-vector_stores = {
-    "jobs": load_and_index_dataset("./datasets/structured_jobs.csv", "jobs", format_job),
-    "events": load_and_index_dataset("./datasets/herkey_events.csv", "events", format_event)
-}
+# -------------------- TITLE GENERATOR --------------------
+def generate_chat_title(content: str) -> str:
+    prompt = f"""You are an AI assistant that creates short and relevant titles for chat conversations.
 
-# -------------------- SMART QUERY ENDPOINT --------------------
+Given the following user query or conversation context, generate a concise, descriptive title (max 8 words). Avoid using punctuation like quotes or emojis.
+
+Chat Content:
+{content}
+
+Title:"""
+    return title_llm.invoke(prompt).content.strip()
+
+# -------------------- ENDPOINTS --------------------
 @app.post("/asha-smart-query")
 async def smart_query(query: AshaQuery):
+    if not query.query or not query.query.strip():
+        return {"error": "Query cannot be empty."}
+
     q = query.query.lower()
     today = datetime.now().date()
+    vector_stores = get_vector_stores()
 
     if any(keyword in q for keyword in ["job", "internship", "career", "resume", "event", "workshop", "summit", "fair"]):
         category = "jobs" if "job" in q or "internship" in q else "events"
         retriever = vector_stores[category].as_retriever(search_type="similarity", search_kwargs={"k": 5})
         docs = retriever.invoke(query.query)
 
-        # Filter past events/jobs
+        if not docs:
+            return {"error": "No relevant documents found."}
+
         filtered_docs = []
         for doc in docs:
             match = re.search(r"on (\d{4}-\d{2}-\d{2})", doc.page_content)
@@ -186,9 +176,16 @@ async def smart_query(query: AshaQuery):
             else:
                 filtered_docs.append(doc)
 
+        if not filtered_docs:
+            return {"error": "No upcoming events or jobs found."}
+
         context = "\n\n".join([doc.page_content for doc in filtered_docs])
-        final_prompt = rag_prompt.format(context=context, query=query.query, current_date=current_date)
+        final_prompt = guardrails_system_prompt + "\n\n" + rag_prompt.format(context=context, query=query.query, current_date=current_date)
+
         response = llm.invoke(final_prompt).content
+
+        if not response:
+            return {"error": "No response from the model."}
 
         urls = []
         for doc in filtered_docs:
@@ -202,17 +199,23 @@ async def smart_query(query: AshaQuery):
         return {"response": response, "source": f"RAG-{category}", "urls": urls}
     else:
         results = search.run(query.query)
+        if not results:
+            return {"error": "No search results found."}
+
         final_prompt = web_prompt.format(query=query.query, results=results, current_date=current_date)
         response = llm.invoke(final_prompt).content
+        if not response:
+            return {"error": "No response from the model."}
         return {"response": response, "source": "Google Search"}
 
-# -------------------- CHAT TITLE GENERATOR --------------------
 @app.post("/generate-title")
 async def title_gen(request: TitleRequest):
+    if not request.content or not request.content.strip():
+        return {"error": "Content cannot be empty."}
+
     title = generate_chat_title(request.content)
     return {"title": title}
 
-# -------------------- HEALTH CHECK --------------------
 @app.get("/health")
 def health():
     return {
