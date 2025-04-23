@@ -10,7 +10,88 @@ import {
   X,
   Mic,
   MicOff,
+  ExternalLink,
 } from "lucide-react";
+
+// Helper function to convert text to HTML with formatted elements
+const formatMessage = (text) => {
+  if (!text) return null;
+
+  // Handle numbered lists (like "1. Item")
+  const hasNumberedList = /^\d+\.\s.+/m.test(text);
+
+  // Handle bullet points (like "* Item" or "• Item")
+  const hasBulletList = /^[\*\•]\s.+/m.test(text);
+
+  // Handle URLs to make them clickable
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+  // Handle bold text (like **text**)
+  const boldRegex = /\*\*(.*?)\*\*/g;
+
+  let formattedText = text;
+
+  // Convert URLs to anchor tags
+  formattedText = formattedText.replace(urlRegex, (url) => {
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline flex items-center gap-1">${url}<span class="inline-block"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></span></a>`;
+  });
+
+  // Convert bold text
+  formattedText = formattedText.replace(boldRegex, "<strong>$1</strong>");
+
+  // Process the text line by line
+  const lines = formattedText.split("\n");
+  let inList = false;
+  let listType = "";
+  let result = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+
+    // Check if line starts a numbered list
+    if (/^\d+\.\s.+/.test(line)) {
+      if (!inList || listType !== "ol") {
+        if (inList) result.push(`</ul>`);
+        result.push(`<ol class="list-decimal pl-5 my-1">`); // Reduced vertical spacing
+        inList = true;
+        listType = "ol";
+      }
+      line = `<li class="mb-0.5">${line.replace(/^\d+\.\s/, "")}</li>`; // Add small margin to list items
+    }
+    // Check if line starts a bullet list
+    else if (/^[\*\•]\s.+/.test(line)) {
+      if (!inList || listType !== "ul") {
+        if (inList) result.push(`</ol>`);
+        result.push(`<ul class="list-disc pl-5 my-1">`); // Reduced vertical spacing
+        inList = true;
+        listType = "ul";
+      }
+      line = `<li class="mb-0.5">${line.replace(/^[\*\•]\s/, "")}</li>`; // Add small margin to list items
+    }
+    // Empty line
+    else if (line.trim() === "") {
+      if (inList) {
+        result.push(listType === "ol" ? "</ol>" : "</ul>");
+        inList = false;
+      }
+      line = '<span class="block h-2"></span>'; // Reduced empty line height
+    }
+    // Regular text but we're in a list
+    else if (inList) {
+      result.push(listType === "ol" ? "</ol>" : "</ul>");
+      inList = false;
+    }
+
+    result.push(line);
+  }
+
+  // Close any open list
+  if (inList) {
+    result.push(listType === "ol" ? "</ol>" : "</ul>");
+  }
+
+  return result.join("\n");
+};
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([
@@ -35,30 +116,47 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (inputValue.trim() || files.length > 0) {
-      const newMessage = {
+  const handleSendMessage = async () => {
+    if (inputValue.trim()) {
+      const userMessage = {
         id: messages.length + 1,
         text: inputValue,
         sender: "user",
-        files: files.length > 0 ? [...files] : undefined,
       };
 
-      setMessages([...messages, newMessage]);
+      setMessages((prevMessages) => [...prevMessages, userMessage]);
       setInputValue("");
-      setFiles([]);
 
-      // Simulate AI response
-      setTimeout(() => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/asha-smart-query", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ query: inputValue }),
+        });
+
+        const data = await response.json();
+        console.log("AI response:", data);
+        const aiMessage = {
+          id: messages.length + 2,
+          text: data.response || "No response from AI.",
+          sender: "ai",
+          isFormatted: true,
+        };
+
+        setMessages((prevMessages) => [...prevMessages, aiMessage]);
+      } catch (error) {
+        console.error("Error sending message:", error);
         setMessages((prevMessages) => [
           ...prevMessages,
           {
-            id: prevMessages.length + 1,
-            text: "I've received your message! How can I assist you further?",
+            id: messages.length + 2,
+            text: "Something went wrong. Please try again later.",
             sender: "ai",
           },
         ]);
-      }, 1000);
+      }
     }
   };
 
@@ -118,6 +216,7 @@ export default function ChatPage() {
       }
     }
   };
+
   const handleFileUpload = (e) => {
     const selectedFiles = Array.from(e.target.files);
 
@@ -152,38 +251,40 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 p-4 shadow-sm">
+      {/* Header - Reduced padding */}
+      <header className="bg-white border-b border-gray-200 py-2 px-4 shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-semibold text-primary-900">
+          <h1 className="text-lg font-semibold text-primary-900">
             Asha AI Chat
           </h1>
           <Button
             onClick={startNewChat}
-            className="bg-primary-700 hover:bg-primary-800 text-white flex items-center gap-2"
+            className="bg-primary-700 hover:bg-primary-800 text-white flex items-center gap-2 h-8 px-3" // Reduced button size
+            size="sm"
           >
-            <Plus size={16} />
+            <Plus size={14} />
             <span className="hidden sm:inline">New Chat</span>
           </Button>
         </div>
       </header>
 
-      {/* Chat Content Area */}
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6">
+      {/* Chat Content Area - Reduced padding */}
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-2 md:p-4">
         {messages.length === 1 && !isNewChat ? (
           <div className="h-full flex flex-col items-center justify-center">
             <div className="max-w-md w-full text-center">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-                <h2 className="text-xl font-medium text-primary-900 mb-2">
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+                <h2 className="text-lg font-medium text-primary-900 mb-2">
                   Welcome to Asha AI
                 </h2>
-                <p className="text-gray-700 mb-6">
+                <p className="text-gray-700 mb-4">
                   I'm your ethical AI assistant. I can help answer questions,
                   assist with tasks, and respond to uploaded content.
                 </p>
                 <Button
                   onClick={startNewChat}
                   className="bg-primary-700 hover:bg-primary-800 text-white"
+                  size="sm"
                 >
                   Start New Chat
                 </Button>
@@ -191,7 +292,9 @@ export default function ChatPage() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4 max-w-3xl mx-auto">
+          <div className="space-y-2 max-w-3xl mx-auto">
+            {" "}
+            {/* Reduced space between messages */}
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -200,21 +303,32 @@ export default function ChatPage() {
                 }`}
               >
                 <div
-                  className={`max-w-[85%] rounded-lg p-4 ${
+                  className={`max-w-[85%] rounded-lg px-3 py-2 ${
                     message.sender === "user"
                       ? "bg-primary-700 text-white"
                       : "bg-white text-gray-900 border border-gray-200 shadow-sm"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{message.text}</p>
+                  {message.isFormatted ? (
+                    <div
+                      className="whitespace-pre-wrap formatted-message text-sm" // Reduced text size
+                      dangerouslySetInnerHTML={{
+                        __html: formatMessage(message.text),
+                      }}
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm">
+                      {message.text}
+                    </p> // Reduced text size
+                  )}
 
-                  {/* Display attached files */}
+                  {/* Display attached files - Reduced size */}
                   {message.files && message.files.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-1">
                       {message.files.map((file) => (
                         <div key={file.id} className="relative">
                           {file.type.startsWith("image/") ? (
-                            <div className="h-24 w-24 rounded-md overflow-hidden border border-gray-300">
+                            <div className="h-20 w-20 rounded-md overflow-hidden border border-gray-300">
                               <img
                                 src={file.url}
                                 alt={file.name}
@@ -222,14 +336,14 @@ export default function ChatPage() {
                               />
                             </div>
                           ) : (
-                            <div className="h-24 w-24 flex items-center justify-center bg-gray-100 rounded-md border border-gray-300">
-                              <div className="text-xs text-center p-2">
+                            <div className="h-20 w-20 flex items-center justify-center bg-gray-100 rounded-md border border-gray-300">
+                              <div className="text-xs text-center p-1">
                                 <ImageIcon
-                                  size={24}
+                                  size={20}
                                   className="mx-auto mb-1 text-gray-500"
                                 />
-                                {file.name.length > 15
-                                  ? file.name.substring(0, 12) + "..."
+                                {file.name.length > 12
+                                  ? file.name.substring(0, 9) + "..."
                                   : file.name}
                               </div>
                             </div>
@@ -246,16 +360,16 @@ export default function ChatPage() {
         )}
       </div>
 
-      {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 p-4">
+      {/* Input Area - Reduced height */}
+      <div className="bg-white border-t border-gray-200 py-2 px-4">
         <div className="max-w-3xl mx-auto">
-          {/* File previews */}
+          {/* File previews - Reduced size */}
           {files.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2">
+            <div className="mb-2 flex flex-wrap gap-1">
               {files.map((file) => (
                 <div key={file.id} className="relative">
                   {file.type.startsWith("image/") ? (
-                    <div className="h-16 w-16 rounded-md overflow-hidden border border-gray-300">
+                    <div className="h-14 w-14 rounded-md overflow-hidden border border-gray-300">
                       <img
                         src={file.url}
                         alt={file.name}
@@ -263,22 +377,22 @@ export default function ChatPage() {
                       />
                       <button
                         onClick={() => removeFile(file.id)}
-                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs shadow-md"
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 text-xs shadow-md"
                       >
-                        <X size={12} />
+                        <X size={10} />
                       </button>
                     </div>
                   ) : (
-                    <div className="h-16 w-16 flex items-center justify-center bg-gray-100 rounded-md border border-gray-300">
+                    <div className="h-14 w-14 flex items-center justify-center bg-gray-100 rounded-md border border-gray-300">
                       <button
                         onClick={() => removeFile(file.id)}
-                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs shadow-md"
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 text-xs shadow-md"
                       >
-                        <X size={12} />
+                        <X size={10} />
                       </button>
                       <div className="text-xs text-center">
-                        {file.name.length > 10
-                          ? file.name.substring(0, 7) + "..."
+                        {file.name.length > 8
+                          ? file.name.substring(0, 5) + "..."
                           : file.name}
                       </div>
                     </div>
@@ -288,14 +402,14 @@ export default function ChatPage() {
             </div>
           )}
 
-          {/* Input with file upload and speech recognition */}
-          <div className="flex items-end gap-2">
+          {/* Input with file upload and speech recognition - Reduced height */}
+          <div className="flex items-end gap-1">
             <div className="flex-1 bg-white rounded-lg border border-gray-300 overflow-hidden flex items-end">
               <textarea
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Type your message here..."
-                className="flex-1 p-3 outline-none resize-none min-h-[44px] max-h-24"
+                className="flex-1 py-2 px-3 outline-none resize-none min-h-[38px] max-h-20 text-sm" // Reduced padding and height
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -314,44 +428,45 @@ export default function ChatPage() {
                 onChange={handleFileUpload}
                 className="hidden"
                 multiple
-                accept="image/*" // Added for better mobile UX
+                accept="image/*"
               />
               <div className="flex items-center pr-1 gap-0.5">
-                {" "}
-                {/* Improved spacing */}
                 <button
                   onClick={() => fileInputRef.current.click()}
-                  className="p-2 text-gray-500 hover:text-primary-700 rounded-full hover:bg-gray-100 transition-colors"
+                  className="p-1.5 text-gray-500 hover:text-primary-700 rounded-full hover:bg-gray-100 transition-colors" // Reduced padding
                   title="Attach file"
-                  type="button" // Added to prevent form submission
+                  type="button"
                 >
-                  <Upload size={20} />
+                  <Upload size={16} /> {/* Reduced icon size */}
                 </button>
                 {speechSupported && (
                   <button
                     onClick={toggleSpeechRecognition}
-                    className={`p-2 rounded-full transition-colors ${
+                    className={`p-1.5 rounded-full transition-colors ${
                       isListening
                         ? "text-red-500 animate-pulse bg-red-50"
                         : "text-gray-500 hover:text-primary-700 hover:bg-gray-100"
                     }`}
                     title={isListening ? "Stop listening" : "Start voice input"}
-                    type="button" // Added to prevent form submission
+                    type="button"
                   >
-                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                    {isListening ? <MicOff size={16} /> : <Mic size={16} />}{" "}
+                    {/* Reduced icon size */}
                   </button>
                 )}
               </div>
             </div>
             <Button
               onClick={handleSendMessage}
-              disabled={!inputValue.trim() && files.length === 0} // Added disabled state
-              className="bg-primary-700 hover:bg-primary-800 text-white p-3 h-[44px] w-[44px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!inputValue.trim() && files.length === 0}
+              className="bg-primary-700 hover:bg-primary-800 text-white p-2 h-[38px] w-[38px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" // Reduced size
             >
-              <Send size={18} />
+              <Send size={16} /> {/* Reduced icon size */}
             </Button>
           </div>
-          <div className="mt-2 text-xs text-gray-500 text-center">
+          <div className="mt-1 text-xs text-gray-500 text-center">
+            {" "}
+            {/* Reduced margin */}
             Press Enter to send, Shift+Enter for new line
             {speechSupported && " • Click microphone for voice input"}
           </div>
