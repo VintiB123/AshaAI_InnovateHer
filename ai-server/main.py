@@ -34,8 +34,7 @@ class AshaQuery(BaseModel):
     chat_title: str
 
 class ChatTitleRequest(BaseModel):
-    message: str  # remove user_id for simplicity
-
+    message: str  # removed user_id for simplicity
 
 # -------------------- MEMORY STORE --------------------
 chat_sessions: Dict[str, Dict[str, List[dict]]] = defaultdict(lambda: defaultdict(list))
@@ -117,7 +116,6 @@ Title:"""
     title = title_llm.invoke(prompt).content.strip()
     return {"title": title}
 
-
 # -------------------- SMART QUERY --------------------
 @app.post("/asha-smart-query")
 async def smart_query(query: AshaQuery):
@@ -162,12 +160,19 @@ async def smart_query(query: AshaQuery):
 
     return {"response": response, "source": f"RAG-{category}", "urls": urls}
 
-# -------------------- GET CHAT HISTORY --------------------
+# -------------------- GET CHAT HISTORY (Updated) --------------------
 @app.get("/chat-history")
-async def get_chat_history(user_id: str = Query(...), title: str = Query(...)):
-    if user_id not in chat_sessions or title not in chat_sessions[user_id]:
-        return {"error": "Chat not found."}
-    return {"history": chat_sessions[user_id][title]}
+async def get_chat_history(user_id: str = Query(...)):
+    if user_id not in chat_sessions:
+        return {"error": "No chat history found for this user."}
+
+    return {
+        "user_id": user_id,
+        "chats": [
+            {"title": title, "history": history}
+            for title, history in chat_sessions[user_id].items()
+        ]
+    }
 
 # -------------------- HEALTH --------------------
 @app.get("/health")
