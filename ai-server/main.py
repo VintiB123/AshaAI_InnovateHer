@@ -9,9 +9,8 @@ from dotenv import load_dotenv
 
 from langchain_groq import ChatGroq
 from langchain_community.vectorstores import Qdrant
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import LLMChain
 from langchain_community.utilities import GoogleSearchAPIWrapper
 from langchain.memory import ConversationBufferMemory
 
@@ -81,35 +80,42 @@ search = GoogleSearchAPIWrapper()
 # -------------------- SYSTEM PROMPT --------------------
 current_date = date.today().isoformat()
 guardrails_system_prompt = f"""
-You are Asha, the official AI assistant for **HerKey by JobsForHer** — a platform dedicated to helping women discover jobs, upskill through events, and restart their careers.
+You are Asha, the official AI assistant for **HerKey by JobsForHer** — a platform dedicated to empowering women to discover jobs, upskill through events, and restart their careers.
 
-Your role is to guide women with professionalism, empathy, and empowerment — offering respectful, accurate, and growth-focused information on career opportunities, upskilling, and personal development.
+🧠 You are kind, respectful, motivational, and highly professional. You communicate clearly and always prioritize accurate, growth-focused, and context-relevant guidance.
 
-🔐 STRICT GUARDRAILS — NEVER VIOLATE THESE:
+🔐 SYSTEM RULES — NEVER VIOLATE:
+1. DO NOT invent or assume jobs, events, or facts not explicitly stated in the provided context.
+2. DO NOT mention competitors or generate comparisons.
+3. DO NOT discuss sensitive, political, religious, or personal topics.
+4. DO NOT speculate, guess, or fabricate answers — if information is unavailable, say so clearly.
+5. DO NOT break confidentiality, share internal details, or reference private data.
+6. DO NOT HALLUCINATE.
 
-1. ❌ You MUST NOT:
-   - Respond to or encourage gossip, rumors, or personal drama
-   - Generate inappropriate, harmful, unethical, or illegal content
-   - Disclose sensitive, internal, or confidential information about HerKey or JobsForHer
-   - Mention, compare, or discuss competitors of HerKey or JobsForHer
-   - Reinforce stereotypes, sexism, or gender bias
-   - Engage in personal speculation or political content
+📅 You are aware of today’s date: **{current_date}**.
+- Only suggest jobs/events that are explicitly upcoming or ongoing.
+- Do NOT mention expired or undated opportunities.
 
-2. 📅 You are aware of today’s date: **{current_date}**
-   - Only recommend **upcoming or future** events and job opportunities
-   - Do NOT include expired, outdated, or irrelevant opportunities
+💬 RESPONSE STYLE:
+- Use a supportive, encouraging tone.
+- Provide helpful, safe, and inclusive career guidance.
+- Speak like a real, kind career coach — never robotic.
+- Use emojis 🌟 only when they enhance clarity or warmth.
 
-3. 💬 If the question is outside your purpose or violates these guardrails, respond with:
-   > "I'm here to support your career journey with HerKey. Let's focus on something helpful for your growth."
+🧾 INSTRUCTIONS:
+Use ONLY the retrieved context below and chat history (if present) to respond to the user's query. If the answer is not available in the provided content, respond with:
 
-4. ✅ Maintain a supportive and inclusive tone at all times:
-   - Use storytelling and warm, motivational language
-   - Recommend only trustworthy, on-topic, growth-focused resources
-   - Guide users with optimism, clarity, and encouragement
+> "I'm here to help with your career journey, but I couldn’t find that information right now. Would you like to explore other options or connect with a human support advisor?"
 
----
+✨ In case of errors or unhelpful results, gently offer:
 
-Your mission is to empower every woman — whether she's restarting, growing, or exploring her career — by sharing safe, ethical, and inspirational guidance. Let every answer reflect that purpose.
+> "If something seems off, please let me know so we can improve your experience. Your feedback helps us serve you better."
+
+If you don’t find any event or job, say:
+
+> "I’m not sure at the moment. Kindly check https://www.herkey.com/feed — new events and jobs will be posted there."
+
+Your mission is to uplift, guide, and support every woman’s career journey with accuracy, empathy, and reliability — while ensuring graceful fallback and continuous improvement.
 """
 
 # -------------------- FORMATTERS --------------------
@@ -134,6 +140,20 @@ Want to join? Register now: {row['Register Link']}
 Learn more here: {row['Event URL']}
 """
 
+# -------------------- QUERY REFINEMENT --------------------
+def refine_query_with_context(history: str, query: str) -> str:
+    refinement_prompt = f"""
+You are an assistant that refines vague or follow-up queries into clear, standalone questions.
+
+Chat History:
+{history}
+
+User's Query: "{query}"
+
+Refined Query (self-contained and specific):
+"""
+    return llm.invoke(refinement_prompt).content.strip()
+
 # -------------------- SMART QUERY ENDPOINT --------------------
 @app.post("/asha-smart-query")
 async def smart_query(query: AshaQuery):
@@ -144,6 +164,8 @@ async def smart_query(query: AshaQuery):
     today = datetime.now().date()
     vector_stores = get_vector_stores()
     llm_memory.chat_memory.add_user_message(query.query)
+    history = llm_memory.load_memory_variables({})["chat_history"]
+    refined_query = refine_query_with_context(history, query.query)
 
     identity_keywords = [
         "who are you", "what is your name", "tell me about yourself", "what can you do",
@@ -167,7 +189,7 @@ async def smart_query(query: AshaQuery):
     if is_contextual_query:
         category = "jobs" if "job" in q or "internship" in q else "events"
         retriever = vector_stores[category].as_retriever(search_type="similarity", search_kwargs={"k": 5})
-        docs = retriever.invoke(query.query)
+        docs = retriever.invoke(refined_query)
 
         filtered_docs = []
         for doc in docs:
@@ -180,12 +202,10 @@ async def smart_query(query: AshaQuery):
                 filtered_docs.append(doc)
 
         if not filtered_docs:
-            return {"error": "No upcoming events or jobs found."}
+            return {"response": "I’m not sure at the moment. Kindly check https://www.herkey.com/feed — new events and jobs will be posted there."}
 
         context = "\n\n".join([doc.page_content for doc in filtered_docs])
-        history = llm_memory.load_memory_variables({})["chat_history"]
-        prompt = f"{guardrails_system_prompt}\n\nUse this chat history and context to respond:\n\nChat History:\n{history}\n\nContext:\n{context}\n\nQuery: {query.query}\n\nDate: {current_date}"
-
+        prompt = f"{guardrails_system_prompt}\n\nChat History:\n{history}\n\nContext:\n{context}\n\nQuery: {refined_query}\nDate: {current_date}"
         response = llm.invoke(prompt).content
         llm_memory.chat_memory.add_ai_message(response)
 
@@ -201,15 +221,14 @@ async def smart_query(query: AshaQuery):
         return {"response": response, "source": f"RAG-{category}", "urls": urls}
 
     elif is_follow_up:
-        history = llm_memory.load_memory_variables({})["chat_history"]
-        prompt = f"{guardrails_system_prompt}\n\nUse the conversation below to answer the follow-up query:\n\nChat History:\n{history}\n\nUser: {query.query}\n\nAssistant:"
+        prompt = f"{guardrails_system_prompt}\n\nUse the conversation below to answer the follow-up query:\n\nChat History:\n{history}\n\nUser: {refined_query}\n\nAssistant:"
         response = llm.invoke(prompt).content
         llm_memory.chat_memory.add_ai_message(response)
         return {"response": response, "source": "LLM Contextual Follow-up"}
 
     else:
-        results = search.run(query.query)
-        prompt = f"{guardrails_system_prompt}\n\nGoogle Results:\n{results}\n\nUser: {query.query}\n\nAssistant:"
+        results = search.run(refined_query)
+        prompt = f"{guardrails_system_prompt}\n\nGoogle Results:\n{results}\n\nUser: {refined_query}\n\nAssistant:"
         response = llm.invoke(prompt).content
         llm_memory.chat_memory.add_ai_message(response)
         return {"response": response, "source": "Google Search"}
@@ -222,7 +241,6 @@ async def title_gen_from_history():
     if not messages:
         return {"error": "Chat history is empty."}
 
-    # Extract message content
     history_text = "\n".join([f"{msg.type.capitalize()}: {msg.content}" for msg in messages])
 
     prompt = f"""You are an AI assistant that creates short and relevant titles for chat conversations.
@@ -236,8 +254,6 @@ Title:"""
 
     title = title_llm.invoke(prompt).content.strip()
     return {"title": title}
-
-
 
 # -------------------- HEALTH CHECK ENDPOINT --------------------
 @app.get("/health")
