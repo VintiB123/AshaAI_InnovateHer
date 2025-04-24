@@ -110,11 +110,56 @@ export default function ChatPage() {
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
   const recognitionRef = useRef(null);
-
+  const [chatTitle, setChatTitle] = useState("Asha AI Chat");
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // const handleSendMessage = async () => {
+  //   if (inputValue.trim()) {
+  //     const userMessage = {
+  //       id: messages.length + 1,
+  //       text: inputValue,
+  //       sender: "user",
+  //     };
+
+  //     setMessages((prevMessages) => [...prevMessages, userMessage]);
+  //     setInputValue("");
+
+  //     try {
+  //       const response = await fetch("http://127.0.0.1:8000/asha-smart-query", {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({ query: inputValue }),
+  //       });
+
+  //       const data = await response.json();
+  //       console.log("AI response:", data);
+  //       const aiMessage = {
+  //         id: messages.length + 2,
+  //         text: data.response || "No response from AI.",
+  //         sender: "ai",
+  //         isFormatted: true,
+  //       };
+
+  //       setMessages((prevMessages) => [...prevMessages, aiMessage]);
+  //     } catch (error) {
+  //       console.error("Error sending message:", error);
+  //       setMessages((prevMessages) => [
+  //         ...prevMessages,
+  //         {
+  //           id: messages.length + 2,
+  //           text: "Something went wrong. Please try again later.",
+  //           sender: "ai",
+  //         },
+  //       ]);
+  //     }
+  //   }
+  // };
 
   const handleSendMessage = async () => {
     if (inputValue.trim()) {
@@ -128,6 +173,27 @@ export default function ChatPage() {
       setInputValue("");
 
       try {
+        // Generate title if this is the first user message
+        if (messages.length === 1) {
+          setIsGeneratingTitle(true);
+          const titleResponse = await fetch(
+            "http://127.0.0.1:8000/generate-title",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ content: inputValue }),
+            }
+          );
+
+          const titleData = await titleResponse.json();
+          if (titleData.title) {
+            setChatTitle(titleData.title);
+          }
+        }
+
+        // Get AI response
         const response = await fetch("http://127.0.0.1:8000/asha-smart-query", {
           method: "POST",
           headers: {
@@ -137,7 +203,6 @@ export default function ChatPage() {
         });
 
         const data = await response.json();
-        console.log("AI response:", data);
         const aiMessage = {
           id: messages.length + 2,
           text: data.response || "No response from AI.",
@@ -147,7 +212,7 @@ export default function ChatPage() {
 
         setMessages((prevMessages) => [...prevMessages, aiMessage]);
       } catch (error) {
-        console.error("Error sending message:", error);
+        console.error("Error:", error);
         setMessages((prevMessages) => [
           ...prevMessages,
           {
@@ -156,10 +221,11 @@ export default function ChatPage() {
             sender: "ai",
           },
         ]);
+      } finally {
+        setIsGeneratingTitle(false);
       }
     }
   };
-
   useEffect(() => {
     // Check if browser supports speech recognition
     if (
@@ -236,6 +302,19 @@ export default function ChatPage() {
     setFiles(files.filter((file) => file.id !== fileId));
   };
 
+  // const startNewChat = () => {
+  //   setMessages([
+  //     {
+  //       id: 1,
+  //       text: "Hello! I'm Asha AI, your ethical AI assistant. How can I help you today?",
+  //       sender: "ai",
+  //     },
+  //   ]);
+  //   setInputValue("");
+  //   setFiles([]);
+  //   setIsNewChat(true);
+  // };
+
   const startNewChat = () => {
     setMessages([
       {
@@ -246,13 +325,14 @@ export default function ChatPage() {
     ]);
     setInputValue("");
     setFiles([]);
+    setChatTitle("Asha AI Chat");
     setIsNewChat(true);
   };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header - Reduced padding */}
-      <header className="bg-white border-b border-gray-200 py-2 px-4 shadow-sm">
+      {/* <header className="bg-white border-b border-gray-200 py-2 px-4 shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-lg font-semibold text-primary-900">
             Asha AI Chat
@@ -266,8 +346,22 @@ export default function ChatPage() {
             <span className="hidden sm:inline">New Chat</span>
           </Button>
         </div>
+      </header> */}
+      <header className="bg-white border-b border-gray-200 py-2 px-4 shadow-sm">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <h1 className="text-lg font-semibold text-primary-900">
+            {isGeneratingTitle ? "Generating title..." : chatTitle}
+          </h1>
+          <Button
+            onClick={startNewChat}
+            className="bg-primary-700 hover:bg-primary-800 text-white flex items-center gap-2 h-8 px-3"
+            size="sm"
+          >
+            <Plus size={14} />
+            <span className="hidden sm:inline">New Chat</span>
+          </Button>
+        </div>
       </header>
-
       {/* Chat Content Area - Reduced padding */}
       <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-2 md:p-4">
         {messages.length === 1 && !isNewChat ? (
