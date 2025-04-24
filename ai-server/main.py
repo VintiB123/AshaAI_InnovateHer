@@ -11,9 +11,9 @@ from typing import List, Dict
 
 from langchain_groq import ChatGroq
 from langchain_community.vectorstores import Qdrant
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.utilities import GoogleSearchAPIWrapper
+from langchain_google_community import GoogleSearchAPIWrapper
 
 load_dotenv()
 
