@@ -11,9 +11,9 @@ from langchain_groq import ChatGroq
 from langchain_community.vectorstores import Qdrant
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_community.utilities import GoogleSearchAPIWrapper
+from langchain.memory import ConversationBufferMemory
 
 load_dotenv()
 
@@ -70,6 +70,9 @@ def get_vector_stores():
     }
     return _vector_stores
 
+# -------------------- MEMORY FOR CHAT HISTORY --------------------
+llm_memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
 # -------------------- MODELS & TOOLS --------------------
 llm = ChatGroq(api_key=os.getenv("GROQ_API_TOKEN"), model_name="llama3-70b-8192", temperature=0.5)
 title_llm = ChatGroq(api_key=os.getenv("GROQ_API_TOKEN"), model_name="llama3-70b-8192", temperature=0.3)
@@ -122,7 +125,6 @@ To be successful in this role, you’ll need {row['Requirements']}, so that you 
 Ready to take this exciting leap? Explore the opportunity and apply today: {row['Link']}
 """
 
-
 def format_event(row):
     return f"""
 Don't miss this event: "{row['Title']}" happening on {row['Date']} at {row['Time']} in {row['Location']} ({row['Mode']} mode). 
@@ -132,23 +134,7 @@ Want to join? Register now: {row['Register Link']}
 Learn more here: {row['Event URL']}
 """
 
-# -------------------- PROMPT TEMPLATES --------------------
-rag_prompt = """Use this context to answer the query as a helpful assistant:\n\n{context}\n\nQuery: {query}\n\nDate: {current_date}"""
-web_prompt = """Here are the top results from Google:\n\n{results}\n\nQuery: {query}\nDate: {current_date}\n\nProvide a helpful response."""
-
-# -------------------- TITLE GENERATOR --------------------
-def generate_chat_title(content: str) -> str:
-    prompt = f"""You are an AI assistant that creates short and relevant titles for chat conversations.
-
-Given the following user query or conversation context, generate a concise, descriptive title (max 8 words). Avoid using punctuation like quotes or emojis.
-
-Chat Content:
-{content}
-
-Title:"""
-    return title_llm.invoke(prompt).content.strip()
-
-# -------------------- ENDPOINTS --------------------
+# -------------------- SMART QUERY ENDPOINT --------------------
 @app.post("/asha-smart-query")
 async def smart_query(query: AshaQuery):
     if not query.query or not query.query.strip():
@@ -157,14 +143,31 @@ async def smart_query(query: AshaQuery):
     q = query.query.lower()
     today = datetime.now().date()
     vector_stores = get_vector_stores()
+    llm_memory.chat_memory.add_user_message(query.query)
 
-    if any(keyword in q for keyword in ["job", "internship", "career", "resume", "event", "workshop", "summit", "fair"]):
+    identity_keywords = [
+        "who are you", "what is your name", "tell me about yourself", "what can you do",
+        "what is your role", "what do you do", "herkey", "jobsforher", "what is herkey"
+    ]
+    if any(phrase in q for phrase in identity_keywords):
+        identity_response = (
+            "I'm Asha, your AI career companion on **HerKey by JobsForHer** — a platform designed to help women "
+            "restart, grow, and transform their careers. 🌟\n\n"
+            "I’m here to support you by sharing career opportunities, recommending upskilling events, and answering questions "
+            "related to personal and professional growth. If you're seeking jobs, internships, workshops, or just some guidance — "
+            "I'm here to help with empathy, clarity, and encouragement.\n\n"
+            "Let’s explore your next step together!"
+        )
+        llm_memory.chat_memory.add_ai_message(identity_response)
+        return {"response": identity_response, "source": "Asha Identity"}
+
+    is_contextual_query = any(word in q for word in ["job", "internship", "career", "resume", "event", "workshop", "summit", "fair"])
+    is_follow_up = len(llm_memory.chat_memory.messages) > 1
+
+    if is_contextual_query:
         category = "jobs" if "job" in q or "internship" in q else "events"
         retriever = vector_stores[category].as_retriever(search_type="similarity", search_kwargs={"k": 5})
         docs = retriever.invoke(query.query)
-
-        if not docs:
-            return {"error": "No relevant documents found."}
 
         filtered_docs = []
         for doc in docs:
@@ -180,12 +183,11 @@ async def smart_query(query: AshaQuery):
             return {"error": "No upcoming events or jobs found."}
 
         context = "\n\n".join([doc.page_content for doc in filtered_docs])
-        final_prompt = guardrails_system_prompt + "\n\n" + rag_prompt.format(context=context, query=query.query, current_date=current_date)
+        history = llm_memory.load_memory_variables({})["chat_history"]
+        prompt = f"{guardrails_system_prompt}\n\nUse this chat history and context to respond:\n\nChat History:\n{history}\n\nContext:\n{context}\n\nQuery: {query.query}\n\nDate: {current_date}"
 
-        response = llm.invoke(final_prompt).content
-
-        if not response:
-            return {"error": "No response from the model."}
+        response = llm.invoke(prompt).content
+        llm_memory.chat_memory.add_ai_message(response)
 
         urls = []
         for doc in filtered_docs:
@@ -197,25 +199,47 @@ async def smart_query(query: AshaQuery):
                 urls.append(match.group(1))
 
         return {"response": response, "source": f"RAG-{category}", "urls": urls}
+
+    elif is_follow_up:
+        history = llm_memory.load_memory_variables({})["chat_history"]
+        prompt = f"{guardrails_system_prompt}\n\nUse the conversation below to answer the follow-up query:\n\nChat History:\n{history}\n\nUser: {query.query}\n\nAssistant:"
+        response = llm.invoke(prompt).content
+        llm_memory.chat_memory.add_ai_message(response)
+        return {"response": response, "source": "LLM Contextual Follow-up"}
+
     else:
         results = search.run(query.query)
-        if not results:
-            return {"error": "No search results found."}
-
-        final_prompt = web_prompt.format(query=query.query, results=results, current_date=current_date)
-        response = llm.invoke(final_prompt).content
-        if not response:
-            return {"error": "No response from the model."}
+        prompt = f"{guardrails_system_prompt}\n\nGoogle Results:\n{results}\n\nUser: {query.query}\n\nAssistant:"
+        response = llm.invoke(prompt).content
+        llm_memory.chat_memory.add_ai_message(response)
         return {"response": response, "source": "Google Search"}
 
+# -------------------- TITLE GENERATION ENDPOINT --------------------
 @app.post("/generate-title")
-async def title_gen(request: TitleRequest):
-    if not request.content or not request.content.strip():
-        return {"error": "Content cannot be empty."}
+async def title_gen_from_history():
+    messages = llm_memory.chat_memory.messages
 
-    title = generate_chat_title(request.content)
+    if not messages:
+        return {"error": "Chat history is empty."}
+
+    # Extract message content
+    history_text = "\n".join([f"{msg.type.capitalize()}: {msg.content}" for msg in messages])
+
+    prompt = f"""You are an AI assistant that creates short and relevant titles for chat conversations.
+
+Given the following conversation, generate a concise, descriptive title (max 8 words). Avoid using punctuation like quotes or emojis.
+
+Chat:
+{history_text}
+
+Title:"""
+
+    title = title_llm.invoke(prompt).content.strip()
     return {"title": title}
 
+
+
+# -------------------- HEALTH CHECK ENDPOINT --------------------
 @app.get("/health")
 def health():
     return {
@@ -223,3 +247,9 @@ def health():
         "modes": ["smart-query", "title-generation"],
         "date": current_date
     }
+
+# -------------------- RESET HISTORY ENDPOINT --------------------
+@app.post("/reset-history")
+async def reset_history():
+    llm_memory.clear()
+    return {"message": "Chat history cleared."}
