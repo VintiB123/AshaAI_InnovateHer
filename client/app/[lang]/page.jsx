@@ -1,489 +1,591 @@
 "use client";
-
-import React from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import {
-  ChevronRight,
-  Users,
-  Calendar,
-  MessageSquare,
-  Award,
-  BookOpen,
-  BarChart3,
-  Target,
+  ArrowRight,
+  Check,
   Shield,
-  Instagram,
-  Linkedin,
-  Twitter,
+  Lock,
+  Bot,
+  Briefcase,
+  Calendar,
+  Users,
+  BookOpen,
+  Globe,
+  MessageSquare,
+  Sparkles,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useLanguage } from "@/context/LanguageContext";
 
-export default function Home() {
-  const router = useRouter();
-  const { currentLang } = useLanguage();
+export default function LandingPage() {
+  const [activeTab, setActiveTab] = useState("jobs");
+
+  const features = {
+    jobs: {
+      icon: <Briefcase className="h-6 w-6" />,
+      title: "Job Discovery",
+      description:
+        "Access curated job listings specifically for women returning to workforce",
+      points: [
+        "Personalized job matching",
+        "Return-to-work programs",
+        "Flexible work opportunities",
+        "Skill-based recommendations",
+      ],
+    },
+    events: {
+      icon: <Calendar className="h-6 w-6" />,
+      title: "Community Events",
+      description: "Find networking sessions and skill-building workshops",
+      points: [
+        "Career reboot webinars",
+        "Industry-specific meetups",
+        "Leadership workshops",
+        "Mentorship sessions",
+      ],
+    },
+    resources: {
+      icon: <BookOpen className="h-6 w-6" />,
+      title: "Empowerment Resources",
+      description: "Global insights on women's career advancement",
+      points: [
+        "Latest research & trends",
+        "Success stories",
+        "Policy updates",
+        "Career development tools",
+      ],
+    },
+  };
 
   return (
-    <div className="min-h-screen bg-ivoryWhite-500">
-      <header className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-purple-800 opacity-10 z-0"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 relative z-10">
-          <div className="flex flex-col md:flex-row items-center">
-            <div className="md:w-1/2 mb-10 md:mb-0">
-              <h1 className="text-7xl max-md:text-5xl max-lg:text-6xl font-bold text-purple-900 leading-tight">
-                MentorHer
-              </h1>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-purple-700 leading-tight mt-2">
-                Empowering Women in Tech Through Mentorship
-              </h2>
-              <p className="mt-6 text-lg text-gray-700 max-w-2xl">
-                Connect with industry-leading mentors who understand your
-                journey and can guide your career growth in technology.
-              </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Button
-                  onClick={() => router.push(`/${currentLang}/sign-in`)}
-                  className="bg-purple-700 hover:bg-purple-800 text-white px-8 py-3 rounded-md text-lg"
-                >
-                  Find a Mentor
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/${currentLang}/sign-in`)}
-                  className="border-purple-700 text-purple-700 hover:bg-purple-100 px-8 py-3 rounded-md text-lg"
-                >
-                  Become a Mentor
-                </Button>
-              </div>
+    <div className="min-h-screen bg-gradient-to-b from-primary-100 to-white">
+      {/* Navigation */}
+      <nav className="bg-white border-b border-primary-200 py-4 px-6">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <div className="bg-primary-700 p-1 rounded-full">
+              <Bot className="h-6 w-6 text-white" />
             </div>
-            <div className="md:w-1/2 md:pl-10">
-              <div className="relative">
-                <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-lavender-300 via-purple-500 to-lavender-700 opacity-75 blur"></div>
-                <img
-                  src="https://www.brookings.edu/wp-content/uploads/2021/08/CUE_Inida_mentorships.jpg?quality=75&w=1500"
-                  alt="Women in technology mentorship"
-                  className="relative rounded-lg shadow-xl w-full"
-                />
-              </div>
+            <span className="text-xl font-bold text-primary-950">Asha AI</span>
+          </div>
+          <div className="hidden md:flex items-center space-x-6">
+            <a
+              href="#features"
+              className="text-gray-700 hover:text-primary-800"
+            >
+              Features
+            </a>
+            <a href="#ethics" className="text-gray-700 hover:text-primary-800">
+              Our Ethics
+            </a>
+            <a
+              href="#how-it-works"
+              className="text-gray-700 hover:text-primary-800"
+            >
+              How It Works
+            </a>
+            <Link href="/en/sign-in">
+              <Button className="bg-primary-800 hover:bg-primary-900 text-white">
+                Try Asha Now
+              </Button>
+            </Link>
+          </div>
+          <button className="md:hidden text-primary-900">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="py-16 px-6">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <div>
+            <div className="bg-primary-100 text-primary-900 px-4 py-2 rounded-full inline-flex items-center text-sm mb-6">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Powered by JobsForHer Foundation
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+              Your AI Companion for{" "}
+              <span className="text-primary-800">Women's Career Growth</span>
+            </h1>
+            <p className="text-lg text-gray-600 mb-8">
+              Asha AI provides personalized career guidance, job opportunities,
+              and community support while maintaining the highest ethical
+              standards for women professionals.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link href="/en/sign-up">
+                <Button className="bg-primary-800 hover:bg-primary-900 text-white h-12 px-8 text-lg">
+                  Start Chatting <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+
+              <Button
+                variant="outline"
+                className="h-12 px-8 text-lg border-primary-400 text-primary-800"
+              >
+                Learn More
+              </Button>
             </div>
           </div>
-        </div>
-      </header>
-
-      <section className="bg-purple-100 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-purple-800">
-                2,500+
-              </p>
-              <p className="text-gray-700">Active Mentors</p>
+          <div className="relative">
+            <div className="bg-white p-4 rounded-2xl shadow-lg border border-primary-300">
+              <div className="bg-primary-100 rounded-lg overflow-hidden">
+                {/* Mock chat interface */}
+                <div className="p-4 space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-primary-200 p-2 rounded-full">
+                      <Bot className="h-5 w-5 text-primary-800" />
+                    </div>
+                    <div className="bg-white border border-primary-300 rounded-lg px-4 py-3 text-sm">
+                      Hello! I'm Asha, your ethical career assistant. How can I
+                      help you today?
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 justify-end">
+                    <div className="bg-primary-700 text-white rounded-lg px-4 py-3 text-sm">
+                      What tech jobs are available for women returning to work?
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-primary-200 p-2 rounded-full">
+                      <Bot className="h-5 w-5 text-primary-800" />
+                    </div>
+                    <div className="bg-white border border-primary-300 rounded-lg px-4 py-3 text-sm">
+                      I found 23 return-to-work programs in tech. Here are the
+                      top 3 matches based on your skills...
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-primary-200 p-3 bg-white">
+                  <div className="flex items-center">
+                    <Input
+                      placeholder="Ask about jobs, events, or resources..."
+                      className="flex-1 border-0 bg-primary-100 focus-visible:ring-0"
+                    />
+                    <Button
+                      size="sm"
+                      className="ml-2 bg-primary-700 hover:bg-primary-800"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-purple-800">
-                10,000+
-              </p>
-              <p className="text-gray-700">Mentees Supported</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-purple-800">
-                85%
-              </p>
-              <p className="text-gray-700">Career Advancement</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-purple-800">
-                92%
-              </p>
-              <p className="text-gray-700">Satisfaction Rate</p>
-            </div>
+            <div className="absolute -z-10 top-6 -right-6 w-full h-full rounded-2xl bg-primary-200"></div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-ivoryWhite-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-purple-900">
-              How Mentor Her Empowers You
+      <section id="features" className="py-16 px-6 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              How Asha AI Supports Your Career Journey
             </h2>
-            <p className="mt-4 text-lg text-gray-700 max-w-3xl mx-auto">
-              Our DXP-based platform provides personalized mentorship
-              experiences tailored to your career goals.
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Context-aware assistance designed specifically for women
+              professionals
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-none shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-6">
-                <div className="flex items-start">
-                  <div className="bg-lavender-100 p-3 rounded-full mr-4">
-                    <Users className="w-6 h-6 text-white" />
+          {/* Feature Tabs */}
+          <div className="mb-8 flex justify-center overflow-x-auto">
+            <div className="inline-flex bg-primary-100 rounded-full p-1">
+              {Object.keys(features).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                    activeTab === tab
+                      ? "bg-primary-700 text-white"
+                      : "text-primary-800 hover:bg-primary-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {features[tab].icon}
+                    {features[tab].title}
                   </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                      AI-Powered Matching
-                    </h3>
-                    <p className="text-gray-700">
-                      Intelligent algorithms pair you with mentors based on
-                      skills, goals, and industry experience.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </button>
+              ))}
+            </div>
+          </div>
 
-            <Card className="border-none shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-6">
-                <div className="flex items-start">
-                  <div className="bg-lavender-300 p-3 rounded-full mr-4">
-                    <Calendar className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                      Scheduling Automation
-                    </h3>
-                    <p className="text-gray-700">
-                      Effortlessly schedule sessions with calendar syncing and
-                      automated reminders.
+          {/* Active Feature Content */}
+          <div className="bg-primary-100 rounded-xl p-6 sm:p-8 border border-primary-300">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <h3 className="text-2xl font-bold text-primary-950 mb-3">
+                  {features[activeTab].title}
+                </h3>
+                <p className="text-lg text-gray-700 mb-6">
+                  {features[activeTab].description}
+                </p>
+                <ul className="space-y-3">
+                  {features[activeTab].points.map((point, index) => (
+                    <li key={index} className="flex items-start">
+                      <Check className="h-5 w-5 text-primary-700 mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700">{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-white p-6 rounded-lg border border-primary-300 shadow-sm">
+                <div className="aspect-video bg-primary-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center p-6">
+                    <div className="mx-auto bg-primary-700 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                      {features[activeTab].icon}
+                    </div>
+                    <h4 className="font-bold text-lg text-primary-900 mb-2">
+                      {features[activeTab].title} Example
+                    </h4>
+                    <p className="text-gray-600 text-sm">
+                      "Asha, show me{" "}
+                      {activeTab === "jobs"
+                        ? "remote product management roles for women with 5+ years experience"
+                        : activeTab === "events"
+                        ? "upcoming leadership workshops in Bangalore"
+                        : "latest research on women in STEM fields"}
+                      "
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-6">
-                <div className="flex items-start">
-                  <div className="bg-lavender-500 p-3 rounded-full mr-4">
-                    <MessageSquare className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                      Real-time Communication
-                    </h3>
-                    <p className="text-gray-700">
-                      Connect through secure chat and integrated video
-                      conferencing tools.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-6">
-                <div className="flex items-start">
-                  <div className="bg-lavender-700 p-3 rounded-full mr-4">
-                    <Target className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                      Career Path Generator
-                    </h3>
-                    <p className="text-gray-700">
-                      AI-powered tools to visualize and plan your personalized
-                      career journey.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-6">
-                <div className="flex items-start">
-                  <div className="bg-purple-500 p-3 rounded-full mr-4">
-                    <BookOpen className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                      Resource Library
-                    </h3>
-                    <p className="text-gray-700">
-                      Access curated content, workshops, and learning materials
-                      for continuous growth.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-6">
-                <div className="flex items-start">
-                  <div className="bg-purple-700 p-3 rounded-full mr-4">
-                    <BarChart3 className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                      Progress Analytics
-                    </h3>
-                    <p className="text-gray-700">
-                      Track your growth with detailed analytics and skill
-                      development metrics.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="py-20 bg-ivoryWhite-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-purple-900">
-              Your Mentorship Journey
+      {/* Ethics Section */}
+      <section id="ethics" className="py-16 px-6 bg-primary-800 text-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">
+              Ethical AI for Women's Empowerment
             </h2>
-            <p className="mt-4 text-lg text-gray-700 max-w-3xl mx-auto">
-              Simple steps to start your personalized mentorship experience
+            <p className="text-xl text-primary-100 max-w-3xl mx-auto">
+              Our commitment to responsible, bias-free assistance
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-purple-800">1</span>
-              </div>
-              <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                Create Your Profile
-              </h3>
-              <p className="text-gray-700">
-                Sign up and build your profile highlighting your skills,
-                experience, and career goals.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-purple-200 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-purple-800">2</span>
-              </div>
-              <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                Get Matched
-              </h3>
-              <p className="text-gray-700">
-                Our AI algorithm will suggest the most compatible mentors for
-                your specific needs.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-purple-300 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-purple-800">3</span>
-              </div>
-              <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                Start Growing
-              </h3>
-              <p className="text-gray-700">
-                Schedule sessions, access resources, and track your progress as
-                you advance your career.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-ivoryWhite-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-purple-900">
-              Success Stories
-            </h2>
-            <p className="mt-4 text-lg text-gray-700 max-w-3xl mx-auto">
-              Hear from women who transformed their careers through our
-              mentorship platform
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                name: "Sahil Deshmukh",
-                role: "Senior Software Engineer",
-                company: "TechGiant Inc.",
-                image:
-                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgpjJDKjazkyIV6GAq0-3skJbLiOqMlleK7w&s",
-                quote:
-                  "Mentor Her connected me with a senior leader who helped me navigate my career transition. Within 6 months, I secured a promotion and gained confidence in my technical abilities.",
+                icon: <Shield className="h-8 w-8" />,
+                title: "Bias Prevention",
+                description:
+                  "Advanced NLP detects and redirects gender-biased queries with positive reframing",
+                example:
+                  "User: 'Are women good leaders?' → Asha: 'Women excel in leadership! Would you like success stories?'",
               },
               {
-                name: "Priya Patel",
-                role: "Product Manager",
-                company: "InnovateTech",
-                image:
-                  "https://media.licdn.com/dms/image/v2/D4D03AQFy9H8DmRUHlA/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1631235004678?e=2147483647&v=beta&t=_6uWXrGu2L-Pc-k4Q4hmFiU4qEl-ewQ7m2d11DD5fss",
-                quote:
-                  "The personalized guidance I received through this platform was invaluable. My mentor helped me develop leadership skills that completely transformed my approach to product management.",
+                icon: <Lock className="h-8 w-8" />,
+                title: "Privacy First",
+                description:
+                  "No personal data storage - we maintain only anonymous session context",
+                example:
+                  "Temporary session IDs ensure your privacy while enabling conversation continuity",
               },
               {
-                name: "Maya Rodriguez",
-                role: "Cybersecurity Analyst",
-                company: "SecureNet",
-                image:
-                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMo6sVFyGQq_kxlNK6gksP0rxjn31VT5Q1PA&s",
-                quote:
-                  "As a woman in cybersecurity, finding role models was challenging. Mentor Her connected me with incredible mentors who helped me navigate this male-dominated field and thrive.",
+                icon: <Globe className="h-8 w-8" />,
+                title: "Inclusive Knowledge",
+                description:
+                  "Curated global resources on women's empowerment and career advancement",
+                example:
+                  "Real-time updates from verified women's organizations worldwide",
               },
-            ].map((testimonial, index) => (
-              <Card key={index} className="border-none shadow-lg bg-white">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="mb-4">
-                      <div className="w-20 h-20 rounded-full overflow-hidden">
-                        <img
-                          src={testimonial.image}
-                          alt={testimonial.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-gray-700 italic mb-4">
-                      "{testimonial.quote}"
-                    </p>
-                    <h3 className="font-semibold text-purple-900">
-                      {testimonial.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">{testimonial.role}</p>
-                    <p className="text-xs text-gray-500">
-                      {testimonial.company}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+            ].map((item, index) => (
+              <div key={index} className="bg-primary-900 p-6 rounded-xl">
+                <div className="bg-white bg-opacity-20 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                  {item.icon}
+                </div>
+                <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
+                <p className="text-primary-100 mb-4">{item.description}</p>
+                <div className="bg-primary-950 p-3 rounded-lg">
+                  <p className="text-sm font-mono">{item.example}</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-purple-800 to-lavender-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Ready to Transform Your Tech Career?
-          </h2>
-          <p className="text-xl font-medium text-white/90 max-w-3xl mx-auto mb-8">
-            Join thousands of women who are advancing their careers through
-            personalized mentorship.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Button className="bg-white text-purple-900 hover:bg-ivoryWhite-500 px-8 py-3 rounded-md text-lg">
-              Get Started Today
-            </Button>
-            <Button
-              variant="outline"
-              className="text-white bg-purple-700 hover:bg-purple-800 border-purple-400 hover:text-white px-8 py-3 rounded-md text-lg"
-            >
-              Learn More
-            </Button>
+      {/* How It Works */}
+      <section id="how-it-works" className="py-16 px-6 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Context-Aware Architecture
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              How Asha delivers relevant, ethical assistance
+            </p>
+          </div>
+
+          <div className="relative">
+            {/* System Architecture Visualization - Scrollable on mobile */}
+            <div className="overflow-x-auto pb-4">
+              <div className="grid grid-cols-5 gap-6 mb-8 min-w-max md:min-w-0">
+                {[
+                  {
+                    name: "User Query",
+                    icon: <MessageSquare className="h-5 w-5" />,
+                  },
+                  { name: "NLP Processing", icon: <Bot className="h-5 w-5" /> },
+                  {
+                    name: "Context Analysis",
+                    icon: <BookOpen className="h-5 w-5" />,
+                  },
+                  {
+                    name: "Knowledge Retrieval",
+                    icon: <Briefcase className="h-5 w-5" />,
+                  },
+                  {
+                    name: "Ethical Response",
+                    icon: <Check className="h-5 w-5" />,
+                  },
+                ].map((step, index) => (
+                  <div key={index} className="flex flex-col items-center w-32">
+                    <div
+                      className={`p-4 rounded-full mb-2 ${
+                        index % 2 === 0
+                          ? "bg-primary-200 text-primary-800"
+                          : "bg-primary-700 text-white"
+                      }`}
+                    >
+                      {step.icon}
+                    </div>
+                    <p className="text-sm font-medium text-center">
+                      {step.name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-primary-100 rounded-xl p-6 sm:p-8 border border-primary-300">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-xl font-bold text-primary-900 mb-4">
+                    Data Integration
+                  </h3>
+                  <ul className="space-y-4">
+                    <li className="flex items-start">
+                      <div className="bg-primary-200 p-1 rounded-full mr-3 mt-0.5">
+                        <Check className="h-4 w-4 text-primary-800" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          Real-time job listings
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          Integrated with JobsForHer database
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="bg-primary-200 p-1 rounded-full mr-3 mt-0.5">
+                        <Check className="h-4 w-4 text-primary-800" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          Community events
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          Updated workshop and networking opportunities
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="bg-primary-200 p-1 rounded-full mr-3 mt-0.5">
+                        <Check className="h-4 w-4 text-primary-800" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          Global resources
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          Women empowerment insights worldwide
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-primary-900 mb-4">
+                    Ethical Safeguards
+                  </h3>
+                  <ul className="space-y-4">
+                    <li className="flex items-start">
+                      <div className="bg-primary-200 p-1 rounded-full mr-3 mt-0.5">
+                        <Check className="h-4 w-4 text-primary-800" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          Bias detection
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          Flags and redirects gender-biased queries
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="bg-primary-200 p-1 rounded-full mr-3 mt-0.5">
+                        <Check className="h-4 w-4 text-primary-800" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          Privacy protection
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          No personal data collection
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="bg-primary-200 p-1 rounded-full mr-3 mt-0.5">
+                        <Check className="h-4 w-4 text-primary-800" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          Continuous monitoring
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          Regular audits for fairness and accuracy
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <footer className="bg-purple-950 text-ivoryWhite-500 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4">Mentor Her</h3>
-              <p className="text-ivoryWhite-700 mb-4">
-                Empowering women in technology through mentorship, guidance, and
-                community.
-              </p>
-              <div className="flex space-x-4">
-                <div className="w-10 h-10 rounded-full bg-purple-800 flex items-center justify-center hover:cursor-pointer">
-                  <Instagram />
-                </div>
-                <div className="w-10 h-10 rounded-full bg-purple-800 flex items-center justify-center hover:cursor-pointer">
-                  <Linkedin />
-                </div>
-                <div className="w-10 h-10 rounded-full bg-purple-800 flex items-center justify-center hover:cursor-pointer">
-                  <Twitter />
-                </div>
-              </div>
-            </div>
+      {/* CTA Section */}
+      <section className="py-16 px-6 bg-gradient-to-r from-primary-700 to-primary-900 text-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-6">
+            Empower Your Career Journey with Asha
+          </h2>
+          <p className="text-xl text-primary-100 mb-8">
+            Join thousands of women discovering opportunities through ethical AI
+            assistance
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/en/sign-up">
+              <Button className="bg-white text-primary-800 hover:bg-gray-100 h-12 px-8 text-lg">
+                Start Chatting Now
+              </Button>
+            </Link>
 
-            <div>
-              <h4 className="font-semibold mb-4">Platform</h4>
-              <ul className="space-y-2">
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    How It Works
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    Find a Mentor
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    Become a Mentor
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    Resources
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2">
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    About Us
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    Careers
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    Partners
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    Contact
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2">
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-ivoryWhite-700 hover:text-white">
-                    Cookie Policy
-                  </a>
-                </li>
-              </ul>
-            </div>
+            <Link href="https://www.herkey.com/">
+              <Button
+                variant="outline"
+                className="border-white text-white hover:bg-primary-800 h-12 px-8 text-lg"
+              >
+                Learn About JobsForHer
+              </Button>
+            </Link>
           </div>
+        </div>
+      </section>
 
-          <div className="border-t border-purple-800 mt-8 pt-8 text-center">
-            <p className="text-ivoryWhite-700">
-              &copy; {new Date().getFullYear()} Mentor Her. All rights reserved.
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-400 py-12 px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="bg-primary-700 p-1 rounded-full">
+                <Bot className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-white font-bold">Asha AI</span>
+            </div>
+            <p className="text-sm">
+              An ethical AI initiative by JobsForHer Foundation
             </p>
           </div>
+          <div>
+            <h3 className="text-white font-medium mb-4">Resources</h3>
+            <ul className="space-y-2">
+              <li>
+                <a href="#" className="hover:text-white">
+                  Job Listings
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Career Events
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Mentorship Programs
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-white font-medium mb-4">About</h3>
+            <ul className="space-y-2">
+              <li>
+                <a href="#" className="hover:text-white">
+                  Our Mission
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Ethical AI
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  JobsForHer Foundation
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-white font-medium mb-4">Contact</h3>
+            <ul className="space-y-2">
+              <li>
+                <a href="#" className="hover:text-white">
+                  Support
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Partnerships
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Feedback
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto border-t border-gray-800 mt-12 pt-8 text-sm text-center">
+          © {new Date().getFullYear()} Made with love by team InnovateHer ❤. All
+          rights reserved.
         </div>
       </footer>
     </div>
