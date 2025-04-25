@@ -179,6 +179,11 @@ async def get_chat_history(user_id: str = Query(...)):
 def health():
     return {"status": "asha-agentic-ai-ready", "date": current_date}
 
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to Asha AI - HerKey Assistant"}
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
