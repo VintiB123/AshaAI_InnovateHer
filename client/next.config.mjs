@@ -3,10 +3,19 @@ const nextConfig = {
   images: {
     domains: [
       "images.unsplash.com", // Allow Unsplash images
-      "cdn.pixabay.com",     // Allow Pixabay images
-      "ui-avatars.com",       // Allow UI Avatars
-      "external-content.duckduckgo.com"   // Allow DuckDuckGo images
+      "cdn.pixabay.com", // Allow Pixabay images
+      "ui-avatars.com", // Allow UI Avatars
+      "external-content.duckduckgo.com", // Allow DuckDuckGo images
     ],
+  },
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/en",
+        permanent: true,
+      },
+    ];
   },
 };
 
