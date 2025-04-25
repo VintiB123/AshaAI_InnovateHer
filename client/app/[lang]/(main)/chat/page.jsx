@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -94,6 +95,7 @@ const formatMessage = (text) => {
 };
 
 export default function ChatPage() {
+  const { user } = useUser();
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -129,16 +131,39 @@ export default function ChatPage() {
   //     setInputValue("");
 
   //     try {
-  //       const response = await fetch("http://127.0.0.1:8000/asha-smart-query", {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //         body: JSON.stringify({ query: inputValue }),
-  //       });
+  //       // Generate title if this is the first user message
+  //       if (messages.length === 1) {
+  //         setIsGeneratingTitle(true);
+  //         const titleResponse = await fetch(
+  //           "https://ashaai.onrender.com/generate-title",
+  //           {
+  //             method: "POST",
+  //             headers: {
+  //               "Content-Type": "application/json",
+  //             },
+  //             body: JSON.stringify({ message: inputValue }),
+  //           }
+  //         );
+
+  //         const titleData = await titleResponse.json();
+  //         if (titleData.title) {
+  //           setChatTitle(titleData.title);
+  //         }
+  //       }
+
+  //       // Get AI response
+  //       const response = await fetch(
+  //         "https://ashaai.onrender.com/asha-smart-query",
+  //         {
+  //           method: "POST",
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //           },
+  //           body: JSON.stringify({ query: inputValue }),
+  //         }
+  //       );
 
   //       const data = await response.json();
-  //       console.log("AI response:", data);
   //       const aiMessage = {
   //         id: messages.length + 2,
   //         text: data.response || "No response from AI.",
@@ -148,7 +173,7 @@ export default function ChatPage() {
 
   //       setMessages((prevMessages) => [...prevMessages, aiMessage]);
   //     } catch (error) {
-  //       console.error("Error sending message:", error);
+  //       console.error("Error:", error);
   //       setMessages((prevMessages) => [
   //         ...prevMessages,
   //         {
@@ -157,6 +182,8 @@ export default function ChatPage() {
   //           sender: "ai",
   //         },
   //       ]);
+  //     } finally {
+  //       setIsGeneratingTitle(false);
   //     }
   //   }
   // };
@@ -177,13 +204,13 @@ export default function ChatPage() {
         if (messages.length === 1) {
           setIsGeneratingTitle(true);
           const titleResponse = await fetch(
-            "http://127.0.0.1:8000/generate-title",
+            "https://ashaai.onrender.com/generate-title",
             {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ content: inputValue }),
+              body: JSON.stringify({ message: inputValue }),
             }
           );
 
@@ -193,14 +220,21 @@ export default function ChatPage() {
           }
         }
 
-        // Get AI response
-        const response = await fetch("http://127.0.0.1:8000/asha-smart-query", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ query: inputValue }),
-        });
+        // Get AI response with user data
+        const response = await fetch(
+          "https://ashaai.onrender.com/asha-smart-query",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query: inputValue,
+              user_id: user?.id || "anonymous",
+              chat_title: chatTitle,
+            }),
+          }
+        );
 
         const data = await response.json();
         const aiMessage = {

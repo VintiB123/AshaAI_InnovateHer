@@ -357,11 +357,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useGlobalState } from "@/context/GlobalContext";
 import { Input } from "@/components/ui/input";
+import { UserButton, useUser } from "@clerk/nextjs";
 
 export default function Sidebar({ onToggle }) {
   const [expanded, setExpanded] = useState(true);
   const [activeSection, setActiveSection] = useState("today");
+  const { sidebarState } = useGlobalState();
+  const { user } = useUser();
 
   const toggleSidebar = () => {
     setExpanded(!expanded);
@@ -531,36 +535,29 @@ export default function Sidebar({ onToggle }) {
 
       {/* User profile section */}
       <div className="border-t border-primary-200 p-4">
-        <div className="flex items-center">
-          {expanded ? (
-            <>
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-primary-200 flex items-center justify-center text-primary-700 font-medium">
-                  U
-                </div>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-primary-900">User</p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-primary-500 hover:text-primary-700 p-0 flex items-center h-auto"
-                >
-                  <LogOut size={14} className="mr-1" /> Logout
-                </Button>
-              </div>
-            </>
-          ) : (
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="mx-auto h-8 w-8 rounded-full bg-primary-200 flex items-center justify-center text-primary-700 font-medium cursor-pointer">
-                    U
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="right">User Profile</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        <div
+          className={`flex ${
+            expanded ? "justify-start" : "justify-center"
+          } items-center px-2`}
+        >
+          <UserButton
+            afterSignOutUrl="/en"
+            appearance={{
+              elements: {
+                userButtonAvatarBox: { height: "32px", width: "32px" },
+              },
+            }}
+          />
+
+          {expanded && (
+            <div className="flex flex-col justify-center items-start ml-3">
+              <h1 className="text-primary-900 font-semibold text-sm">
+                {user?.fullName || "User"}
+              </h1>
+              <h3 className="text-[0.75rem] text-primary-500 -mt-0.5 font-medium">
+                {user?.primaryEmailAddress?.emailAddress || "User email"}
+              </h3>
+            </div>
           )}
         </div>
       </div>

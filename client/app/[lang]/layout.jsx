@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
-// import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { GlobalProvider } from "@/context/GlobalContext";
 import { ChatbotProvider } from "@/context/ChatbotContext";
@@ -27,24 +27,25 @@ export async function generateStaticParams() {
 
 export default async function RootLayout({ children, params }) {
   return (
-    // <ClerkProvider>
-    <LanguageProvider>
-      <GlobalProvider>
-        <ChatbotProvider>
-          <html lang={(await params).lang} suppressHydrationWarning>
-            <body
-              className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-            >
-              {/* <Provider > */}
-              {children}
-              {/* </Provider> */}
-              <div className="fixed bottom-4 right-4 z-50">
-                {/* <FloatingChatbot /> */}
-              </div>
-            </body>
-          </html>
-        </ChatbotProvider>
-      </GlobalProvider>
-    </LanguageProvider>
+    <ClerkProvider>
+      <LanguageProvider>
+        <GlobalProvider>
+          <ChatbotProvider>
+            <html lang={(await params).lang} suppressHydrationWarning>
+              <body
+                className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+              >
+                {/* <Provider > */}
+                {children}
+                {/* </Provider> */}
+                <div className="fixed bottom-4 right-4 z-50">
+                  {/* <FloatingChatbot /> */}
+                </div>
+              </body>
+            </html>
+          </ChatbotProvider>
+        </GlobalProvider>
+      </LanguageProvider>
+    </ClerkProvider>
   );
 }
