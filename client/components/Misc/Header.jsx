@@ -22,7 +22,7 @@ import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 
 import VoiceControl from "./VoiceControl";
-// import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 
 import { Coins } from "@/public/images";
 import { useNextStep } from "nextstepjs";
@@ -35,8 +35,9 @@ const Header = () => {
   const { dict, currentLang } = useLanguage();
 
   const [breadcrumbItems, setBreadcrumbItems] = useState([]);
+  const [title, setTitle] = useState("");
   const [coins, setCoins] = useState(100);
-  // const { user } = useUser();
+  const { user } = useUser();
   const {
     startNextStep,
     closeNextStep,
@@ -57,13 +58,16 @@ const Header = () => {
 
     const breadcrumbList = pathParts.map((part, index) => {
       const normalizedPart = part.trim();
-      const label = dict?.breadcrumb?.[normalizedPart] || normalizedPart;
+      let label = dict?.breadcrumb?.[normalizedPart] || normalizedPart;
+      label = label
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
       const href = `/${currentLang}/` + pathParts.slice(0, index + 1).join("/");
       return { label, href };
     });
 
     setBreadcrumbItems(breadcrumbList);
-  }, [pathname, dict, currentLang]);
+  }, [pathname, dict, currentLang, user]);
 
   const handleStartTour = () => {
     startNextStep("mainTour");
@@ -92,7 +96,7 @@ const Header = () => {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+          <h1 className="mt-2 font-semibold tracking-tight sm:text-md md:text-lg lg:text-xl xl:text-2xl">
             {breadcrumbItems[breadcrumbItems.length - 1]?.label || "Home"}
           </h1>
         </div>
