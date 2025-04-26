@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import Image from "next/image";
+import { Logo } from "@/public/images";
 import {
   ArrowRight,
   Check,
@@ -64,8 +66,9 @@ export default function LandingPage() {
       <nav className="bg-white border-b border-primary-200 py-4 px-6">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <div className="bg-primary-700 p-1 rounded-full">
-              <Bot className="h-6 w-6 text-white" />
+            {/* Replace this with your logo */}
+            <div className="w-14 h-14 relative">
+              <Image src={Logo} alt="Asha AI Logo" className="object-contain" />
             </div>
             <span className="text-xl font-bold text-primary-950">Asha AI</span>
           </div>
@@ -148,8 +151,12 @@ export default function LandingPage() {
                 {/* Mock chat interface */}
                 <div className="p-4 space-y-4">
                   <div className="flex items-start space-x-3">
-                    <div className="bg-primary-200 p-2 rounded-full">
-                      <Bot className="h-5 w-5 text-primary-800" />
+                    <div className="bg-primary-200 p-1 h-8 w-8 rounded-full">
+                      <Image
+                        src={Logo}
+                        alt="Asha AI Logo"
+                        className="object-contain"
+                      />
                     </div>
                     <div className="bg-white border border-primary-300 rounded-lg px-4 py-3 text-sm">
                       Hello! I'm Asha, your ethical career assistant. How can I
@@ -162,8 +169,12 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
-                    <div className="bg-primary-200 p-2 rounded-full">
-                      <Bot className="h-5 w-5 text-primary-800" />
+                    <div className="bg-primary-200 p-1 h-8 w-8 rounded-full">
+                      <Image
+                        src={Logo}
+                        alt="Asha AI Logo"
+                        className="object-contain"
+                      />
                     </div>
                     <div className="bg-white border border-primary-300 rounded-lg px-4 py-3 text-sm">
                       I found 23 return-to-work programs in tech. Here are the
@@ -513,8 +524,12 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="bg-primary-700 p-1 rounded-full">
-                <Bot className="h-5 w-5 text-white" />
+              <div className="w-10 h-10 relative">
+                <Image
+                  src={Logo}
+                  alt="Asha AI Logo"
+                  className="object-contain"
+                />
               </div>
               <span className="text-white font-bold">Asha AI</span>
             </div>

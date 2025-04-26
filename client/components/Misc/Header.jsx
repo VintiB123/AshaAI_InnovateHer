@@ -23,11 +23,7 @@ import { useLanguage } from "@/context/LanguageContext";
 
 import VoiceControl from "./VoiceControl";
 import { useUser } from "@clerk/nextjs";
-
-import { Coins } from "@/public/images";
 import { useNextStep } from "nextstepjs";
-
-import ThemeSwitcher from "./ThemeSwitcher";
 
 const Header = () => {
   const pathname = usePathname();
