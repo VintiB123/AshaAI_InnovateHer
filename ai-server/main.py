@@ -45,15 +45,14 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=10
 
 # -------------------- VECTOR STORE CACHING --------------------
 _vector_stores = None
-import os
+
 def get_vector_stores():
     global _vector_stores
     if _vector_stores is not None:
         return _vector_stores
 
     def load_and_index_dataset(path: str, category: str, formatter):
-        full_path = os.path.join(os.path.dirname(__file__), path)
-        df = pd.read_csv(full_path)
+        df = pd.read_csv(path)
         docs, metadatas = [], []
         for i, row in df.iterrows():
             for chunk in text_splitter.split_text(formatter(row)):
