@@ -45,14 +45,15 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=10
 
 # -------------------- VECTOR STORE CACHING --------------------
 _vector_stores = None
-
+import os
 def get_vector_stores():
     global _vector_stores
     if _vector_stores is not None:
         return _vector_stores
 
     def load_and_index_dataset(path: str, category: str, formatter):
-        df = pd.read_csv(path)
+        full_path = os.path.join(os.path.dirname(__file__), path)
+        df = pd.read_csv(full_path)
         docs, metadatas = [], []
         for i, row in df.iterrows():
             for chunk in text_splitter.split_text(formatter(row)):
@@ -70,8 +71,8 @@ def get_vector_stores():
         )
 
     _vector_stores = {
-        "jobs": load_and_index_dataset("./datasets/structured_jobs.csv", "jobs", format_job),
-        "events": load_and_index_dataset("./datasets/herkey_events.csv", "events", format_event)
+        "jobs": load_and_index_dataset("datasets/structured_jobs.csv", "jobs", format_job),
+        "events": load_and_index_dataset("datasets/herkey_events.csv", "events", format_event)
     }
     return _vector_stores
 
