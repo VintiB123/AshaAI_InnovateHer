@@ -14,6 +14,8 @@ from langchain_community.vectorstores import Qdrant
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_community import GoogleSearchAPIWrapper
+from qdrant_client import QdrantClient
+from qdrant_client.http.exceptions import UnexpectedResponse
 
 load_dotenv()
 
@@ -43,6 +45,12 @@ chat_sessions: Dict[str, Dict[str, List[dict]]] = defaultdict(lambda: defaultdic
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
+# -------------------- QDRANT CLIENT --------------------
+qdrant_client = QdrantClient(
+    url=os.getenv("QDRANT_URL"),
+    api_key=os.getenv("QDRANT_API_KEY")
+)
+
 # -------------------- VECTOR STORE CACHING --------------------
 _vector_stores = None
 
@@ -52,15 +60,28 @@ def get_vector_stores():
         return _vector_stores
 
     def load_and_index_dataset(path: str, category: str, formatter):
+        collection_name = f"herkey_{category}"
+
+        try:
+            if qdrant_client.get_collection(collection_name):
+                print(f"✅ Collection '{collection_name}' already exists. Skipping embedding.")
+                return Qdrant(
+                    client=qdrant_client,
+                    collection_name=collection_name,
+                    embeddings=embeddings
+                )
+        except UnexpectedResponse:
+            print(f"⚠️ Collection '{collection_name}' does not exist. Creating now...")
+
         full_path = os.path.join(os.path.dirname(__file__), path)
         df = pd.read_csv(full_path)
         docs, metadatas = [], []
+
         for i, row in df.iterrows():
             for chunk in text_splitter.split_text(formatter(row)):
                 docs.append(chunk)
                 metadatas.append({"source": f"{category}_doc_{i}"})
 
-        collection_name = f"herkey_{category}"
         return Qdrant.from_texts(
             texts=docs,
             embedding=embeddings,
@@ -151,8 +172,8 @@ Don't miss this event: "{row['Title']}" happening on {row['Date']} at {row['Time
 # -------------------- SIMPLE NLP QUERY REFINER --------------------
 def refine_user_query(raw_query: str) -> str:
     refined_query = raw_query.strip()
-    refined_query = re.sub(r"[^\w\s\-\?]", "", refined_query)  # Remove unwanted symbols
-    refined_query = re.sub(r"\s+", " ", refined_query)  # Normalize spaces
+    refined_query = re.sub(r"[^\w\s\-\?]", "", refined_query)
+    refined_query = re.sub(r"\s+", " ", refined_query)
     return refined_query
 
 # -------------------- TITLE GENERATION --------------------
@@ -220,7 +241,7 @@ async def smart_query(query: AshaQuery):
 
     return {"response": response, "source": f"RAG-{category}", "urls": urls}
 
-# -------------------- GET CHAT HISTORY (Updated) --------------------
+# -------------------- GET CHAT HISTORY --------------------
 @app.get("/chat-history")
 async def get_chat_history(user_id: str = Query(...)):
     if user_id not in chat_sessions:
