@@ -15,7 +15,7 @@ Built with **Next.js**, **FastAPI**, **Qdrant**, and **GROQ**, Asha AI ensures s
 
 ---
 
-![Deployed Link](http://3.109.203.114:3000/en)
+[Deployed Link](http://3.109.203.114:3000/en)
 
 ## 🚀 Features
 
