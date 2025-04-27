@@ -2,7 +2,7 @@
 
 # 🤖 ASHA AI - Context-Aware Chatbot for JobsForHer Foundation
 
-(Screenshot%202025-04-27%20184411.png)
+![Asha AI Logo](Screenshot%202025-04-27%20184411.png)
 
 ![Next.js](https://img.shields.io/badge/Next.js-000?logo=next.js&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
@@ -28,7 +28,7 @@ Built with **Next.js**, **FastAPI**, **Qdrant**, and **GROQ**, Asha AI ensures s
 
 ## 🧱 Tech Stack Diagram
 
-Below are the different tech stacks used for MentorHer:
+Below are the different tech stacks used for AshaAI:
 
 ![Asha AI TechStack](Screenshot%202025-04-27%20191634.png)
 
