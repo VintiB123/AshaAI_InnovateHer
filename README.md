@@ -151,13 +151,9 @@ AI server will run at: `http://127.0.0.1:8000`
 
 ---
 
-## 💬 Contact
-
 Made with ❤️ by Team InnovateHer for empowering women in careers.  
-For queries, suggestions, or collaborations:
-
 - Vinti Bhatia, Jeel Doshi
 
 ---
 
-```
+
