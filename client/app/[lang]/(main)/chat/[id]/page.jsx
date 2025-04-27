@@ -755,12 +755,11 @@ export default function ChatDetailPage() {
       {/* Header */}
       <header className="h-[5%] bg-white py-2 px-4">
         <div className="max-w-7xl mx-auto flex justify-center items-center">
-          <h1 className="text-lg font-semibold text-primary-900">
+          <h1 className="text-xs font-medium text-primary-900 sm:text-sm md:text-base lg:text-lg">
             {chatTitle}
           </h1>
         </div>
       </header>
-
       {/* Chat Content Area */}
       <div
         ref={chatContainerRef}

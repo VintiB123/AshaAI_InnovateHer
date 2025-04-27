@@ -49,6 +49,7 @@ export default function Sidebar({ onToggle }) {
         }));
 
         setChatList(transformedChats);
+        setError(null); // Reset error if successful
       } catch (err) {
         setError(err.message);
         console.error("Error fetching chat history:", err);
@@ -81,7 +82,7 @@ export default function Sidebar({ onToggle }) {
       className={`bg-white border-r border-primary-200 transition-all duration-300 flex flex-col h-full  ${
         sidebarState
           ? "w-64 max-lg:absolute max-lg:left-0 max-lg:top-0 max-lg:z-100"
-          : "w-18 "
+          : "w-18 md:w-16 sm:w-16"
       }`}
     >
       {/* Header with toggle button */}
@@ -91,22 +92,22 @@ export default function Sidebar({ onToggle }) {
       >
         {sidebarState ? (
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 relative">
+            <div className="w-10 h-10 relative md:w-8 md:h-8">
               <Image
                 src={Logo}
                 alt="Asha.AI Logo"
-                className="h-10 w-auto mb-5 tour-logo"
+                className="h-10 md:h-8 w-auto mb-5 tour-logo"
               />
             </div>
             <span className="text-primary-900 font-semibold">Asha.AI</span>
           </div>
         ) : (
           <div className="w-full flex justify-center">
-            <div className="w-8 h-8 relative">
+            <div className="w-8 h-8 relative md:h-6 md:w-6">
               <Image
                 src={Logo}
                 alt="Asha.AI Logo"
-                className="h-8 w-auto mb-5 tour-logo"
+                className="h-8 md:h-6 w-auto mb-5 tour-logo"
               />
             </div>
           </div>
@@ -157,9 +158,14 @@ export default function Sidebar({ onToggle }) {
             <p className="text-primary-500 text-sm">Loading chats...</p>
           </div>
         ) : error ? (
-          <div className="flex justify-center items-center h-full">
-            <p className="text-red-500 text-sm">Error loading chats</p>
-          </div>
+          sidebarState ? (
+            <div className="flex flex-col items-center justify-center h-full px-4 text-center">
+              <MessageSquare className="text-primary-400 mb-2" size={24} />
+              <p className="text-primary-500 text-sm">
+                Start chatting to see your history here
+              </p>
+            </div>
+          ) : null
         ) : sidebarState ? (
           <div className="px-2">
             <h3 className="text-sm font-medium text-primary-900 px-3 py-2">
@@ -182,9 +188,12 @@ export default function Sidebar({ onToggle }) {
                   </Link>
                 ))
               ) : (
-                <p className="text-primary-500 text-sm px-4 py-2">
-                  No chat history found
-                </p>
+                <div className="flex flex-col items-center justify-center px-4 py-6 text-center">
+                  <MessageSquare className="text-primary-400 mb-2" size={24} />
+                  <p className="text-primary-500 text-sm">
+                    Start chatting to see your history here
+                  </p>
+                </div>
               )}
             </div>
           </div>
