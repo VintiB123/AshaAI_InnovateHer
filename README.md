@@ -26,13 +26,13 @@ Built with **Next.js**, **FastAPI**, **Qdrant**, and **GROQ**, Asha AI ensures s
 
 ## 📂 Project Structure
 
-
+```
 /asha-ai
   |-- ai-server/    # FastAPI server for AI logic
   |-- client/       # Next.js frontend
   |-- public/       # Static assets
   |-- README.md     # This file
-
+```
 
 ---
 
