@@ -114,17 +114,37 @@ AI server will run at: `http://127.0.0.1:8000`
 
 ---
 
-## ✨ Future Improvements
+## 🚀 Future Vision
 
-- Add multilingual support (e.g., Hindi, Spanish)
-- Push notifications for new events or job postings
-- Analytics dashboard for tracking user engagement
-- Integration with WhatsApp Business API
+### 📈 Data Integration
+- Implement real-time web scraping from HerKey and partner sites for up-to-date job listings and event data.
+- Enable dynamic document processing, allowing users to upload and interact with PDFs, DOCs, and images.
+
+### 🌍 Accessibility
+- Expand support for multiple regional Indian languages to reach a broader user base.
+- Enhance voice-based interactions with improved speech-to-text and text-to-speech systems.
+- Enable voice-based navigation within chatbot conversations for better accessibility.
+
+### 📊 Analytics & Feedback
+- Develop a user engagement analytics dashboard to monitor bot performance and user behavior.
+- Conduct A/B testing to continuously optimize conversations and user journeys.
+- Build a community-driven knowledge base with user-submitted improvements and FAQs.
 
 ---
 
 ## 🎥 Demo
 [Watch the demo on YouTube](https://youtu.be/KjYqR17I7qo)
+
+---
+
+## 🙌 Acknowledgments
+
+- **GROQ** for blazing-fast language models
+- **Qdrant** for efficient vector search and retrieval
+- **Clerk.dev** for authentication services
+- **AWS EC2** for hosting both frontend and backend deployments
+- **TailwindCSS** for rapid UI development
+- **FastAPI** for building high-performance APIs
 
 ---
 
