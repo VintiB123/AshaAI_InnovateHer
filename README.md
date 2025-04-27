@@ -1,5 +1,5 @@
 
-```
+
 # 🤖 ASHA AI - Context-Aware Chatbot for JobsForHer Foundation
 
 ![Next.js](https://img.shields.io/badge/Next.js-000?logo=next.js&logoColor=white)
@@ -26,7 +26,7 @@ Built with **Next.js**, **FastAPI**, **Qdrant**, and **GROQ**, Asha AI ensures s
 
 ## 📂 Project Structure
 
-```
+
 /asha-ai
   |-- ai-server/    # FastAPI server for AI logic
   |-- client/       # Next.js frontend
@@ -125,6 +125,11 @@ AI server will run at: `http://127.0.0.1:8000`
 - Push notifications for new events or job postings
 - Analytics dashboard for tracking user engagement
 - Integration with WhatsApp Business API
+
+---
+
+## 🎥 Demo
+[Watch the demo on YouTube](https://youtu.be/KjYqR17I7qo)
 
 ---
 
