@@ -38,21 +38,24 @@ Built with **Next.js**, **FastAPI**, **Qdrant**, and **GROQ**, Asha AI ensures s
 
 ## ⚙️ Environment Variables Setup
 
-You need two `.env` files — one for **frontend** and one for **ai-server**.
+You need two `.env` files — one for **client** and one for **ai-server**.
 
 ### Frontend (`/client/.env.local`)
-
+```bash
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
 NEXT_PUBLIC_AI_SERVER_URL=http://127.0.0.1:8000
+```
 
 ### AI Server (`/ai-server/.env`)
 
+```bash
 GROQ_API_TOKEN=your_groq_api_token
 GOOGLE_CSE_ID=your_google_custom_search_engine_id
 GOOGLE_API_KEY=your_google_api_key
 QDRANT_URL=your_qdrant_instance_url
 QDRANT_API_KEY=your_qdrant_api_key
+```
 
 
 ---
