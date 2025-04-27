@@ -32,7 +32,7 @@ Built with **Next.js**, **FastAPI**, **Qdrant**, and **GROQ**, Asha AI ensures s
   |-- client/       # Next.js frontend
   |-- public/       # Static assets
   |-- README.md     # This file
-```
+
 
 ---
 
@@ -40,25 +40,20 @@ Built with **Next.js**, **FastAPI**, **Qdrant**, and **GROQ**, Asha AI ensures s
 
 You need two `.env` files — one for **frontend** and one for **ai-server**.
 
-### Frontend (`/frontend/.env.local`)
+### Frontend (`/client/.env.local`)
 
-```
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-NEXT_PUBLIC_NODE_SERVER=http://localhost:3000
-NEXT_PUBLIC_AI_SERVER_URL=http://localhost:8000
-```
+CLERK_SECRET_KEY=your_clerk_secret_key
+NEXT_PUBLIC_AI_SERVER_URL=http://127.0.0.1:8000
 
 ### AI Server (`/ai-server/.env`)
-
-```
-CLERK_SECRET_KEY=your_clerk_secret_key
 
 GROQ_API_TOKEN=your_groq_api_token
 GOOGLE_CSE_ID=your_google_custom_search_engine_id
 GOOGLE_API_KEY=your_google_api_key
 QDRANT_URL=your_qdrant_instance_url
 QDRANT_API_KEY=your_qdrant_api_key
-```
+
 
 ---
 
